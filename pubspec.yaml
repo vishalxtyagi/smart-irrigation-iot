@@ -1,0 +1,42 @@
+name: irrigation
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+environment:
+  sdk: '>=3.2.3 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.6
+  pulsator: ^1.0.0+2
+  google_fonts: ^6.1.0
+  gap: ^3.0.1
+  intl: ^0.18.0
+  firebase_core: ^2.24.2
+  connectivity_plus: ^5.0.2
+  network_info_plus: ^4.1.0
+  permission_handler: ^11.1.0
+  esp_smartconfig: ^1.1.11
+  fl_chart: ^0.66.0
+  flutter_svg: ^2.0.9
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.13.1
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "asset/images/logo.png"
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - google_fonts/

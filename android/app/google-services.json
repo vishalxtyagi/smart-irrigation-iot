@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "30790087330",
+    "firebase_url": "https://smart-irrigation-pump-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "smart-irrigation-pump",
+    "storage_bucket": "smart-irrigation-pump.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:30790087330:android:678a8202a3dd12b6e81dfb",
+        "android_client_info": {
+          "package_name": "net.rajeshiot.irrigation"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "30790087330-omstf908b60b45hg77l8jhco1q8a3gpu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlW6Fxx_4_KnkI63NOlhVO_4OZxtjP8pQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "30790087330-dvq9db18av9aja78cg5s21phv5dfmfaf.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "30790087330-hl8sp2a1b30ectenk3uasm6q7kjq9fh7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "net.rajeshiot.irrigation"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
