@@ -21,6 +21,11 @@ dependencies:
   esp_smartconfig: ^1.1.11
   fl_chart: ^0.66.0
   flutter_svg: ^2.0.9
+  animate_do: ^3.1.2
+  url_launcher: ^6.2.2
+  page_transition: ^2.1.0
+  flutter_neumorphic_plus: ^3.3.0
+  syncfusion_flutter_gauges: ^24.1.43
 
 dev_dependencies:
   flutter_test:
@@ -28,11 +33,13 @@ dev_dependencies:
 
   flutter_lints: ^3.0.1
   flutter_launcher_icons: ^0.13.1
+  flutter_oss_licenses: ^2.0.1
 
-flutter_icons:
+flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "asset/images/logo.png"
+  remove_alpha_ios: true
+  image_path: "assets/play_store_512.png"
 
 flutter:
   uses-material-design: true

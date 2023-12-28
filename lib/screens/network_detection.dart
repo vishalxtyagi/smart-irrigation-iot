@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:gap/gap.dart';
 import 'package:irrigation/screens/network_selection.dart';
+import 'package:irrigation/utils/network_connectivity.dart';
 import 'package:irrigation/utils/size_config.dart';
 import 'package:irrigation/utils/styles.dart';
 import 'package:network_info_plus/network_info_plus.dart';
@@ -23,21 +25,50 @@ class _NetworkDetectionState extends State<NetworkDetection> {
   final int _duration = 3;
   final int _repeatCount = 0;
 
+  final _deviceIdFormKey = GlobalKey<FormState>();
+  final _passwordFormKey = GlobalKey<FormState>();
+
   late TextEditingController passwordController;
   late TextEditingController deviceIdController;
 
+  final StreamController<ProvisioningResponse> _provisioningController = StreamController<ProvisioningResponse>();
   StreamSubscription<ProvisioningResponse>? provisionerSubscription;
+
+  final NetworkConnectivity _networkConnectivity = NetworkConnectivity.instance;
   final provisioner = Provisioner.espTouch();
+  Map _source = {ConnectivityResult.none: false};
   bool showPulsator = false;
+  bool isWifiConnected = false;
   bool deviceDetected = false;
 
   @override
   void initState() {
     super.initState();
+    _networkConnectivity.initialise();
+    _networkConnectivity.myStream.listen((source) {
+      _source = source;
+
+      switch (_source.keys.toList()[0]) {
+        case ConnectivityResult.wifi:
+          setState(() {
+            isWifiConnected = true;
+          });
+          break;
+        default:
+          setState(() {
+            isWifiConnected = false;
+          });
+          break;
+      }
+
+      if (!isWifiConnected) {
+        _stopProvisioning();
+      }
+    });
     passwordController = TextEditingController();
     deviceIdController = TextEditingController();
 
-    _init();
+    _checkLocationPermissions();
   }
 
   void handleProvisioningResponse(response) {
@@ -48,21 +79,15 @@ class _NetworkDetectionState extends State<NetworkDetection> {
       deviceDetected = true;
     });
 
-    Navigator.pushAndRemoveUntil(
+    Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => NetworkSelection(deviceId: deviceId),
       ),
-          (route) => false,
     );
   }
 
-  Future<void> _init() async {
-    await _checkPermissions();
-    await _checkWiFiConnection();
-  }
-
-  Future<void> _checkPermissions() async {
+  Future<void> _checkLocationPermissions() async {
     var status = await Permission.location.status;
     if (status.isRestricted || status.isPermanentlyDenied) {
       await Permission.locationWhenInUse.request();
@@ -71,30 +96,37 @@ class _NetworkDetectionState extends State<NetworkDetection> {
     }
   }
 
-  Future<void> _checkWiFiConnection() async {
-    final info = NetworkInfo();
-    final wifiName = await info.getWifiName();
-    if (wifiName == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please connect to WiFi'),
-        ),
-      );
-    } else {
-      await _showPasswordDialog(wifiName);
-    }
-  }
-
-  void _stopProvisioning() {
+  void _stopProvisioning() async {
+    print(provisioner.running);
     print(provisionerSubscription);
-    provisionerSubscription?.cancel();
-    provisioner.stop();
+    if (provisionerSubscription != null && !provisionerSubscription!.isPaused) {
+      try {
+        print('Closing subscription');
+        _provisioningController.close();
+        print('Canceling subscription');
+        await provisionerSubscription!.cancel();
+      } catch (e) {
+        print('Error while canceling subscription: $e');
+      }
+    }
+
+    print(provisionerSubscription);
+    if (provisioner.running) provisioner.stop();
     setState(() {
       showPulsator = false;
     });
   }
 
   Future<void> _startProvisioning() async {
+    _checkLocationPermissions();
+
+    if (!isWifiConnected) {
+      _showWifiConnectionDialog();
+      return;
+    }
+
+    _stopProvisioning();
+
     Completer<void> provisioningCompleter = Completer();
 
     try {
@@ -102,10 +134,11 @@ class _NetworkDetectionState extends State<NetworkDetection> {
 
       final wifiName = await info.getWifiName();
       final wifiBSSID = await info.getWifiBSSID();
-      print('wifiName: $wifiName');
-      print('wifiBSSID: $wifiBSSID');
 
-      // Show the Pulsator only when connected to WiFi
+      if (passwordController.text.isEmpty) {
+        await _showWifiPasswordDialog(wifiName);
+      }
+
       setState(() {
         showPulsator = true;
       });
@@ -121,92 +154,109 @@ class _NetworkDetectionState extends State<NetworkDetection> {
           password: passwordController.text,
         )),
         Future.delayed(const Duration(seconds: 120), () {
-          // Timeout if provisioner doesn't complete within 300 seconds
-          print('Provisioning timed out');
           _stopProvisioning();
-          provisioningCompleter.complete(); // Complete the provisioning process
-          _showPasswordDialog(wifiName, errorMessage: 'Password may be incorrect.');
+          provisioningCompleter.complete();
+          _showWifiPasswordDialog(wifiName, errorMessage: 'Password may be incorrect.');
         }),
       ]);
-    } catch (e, s) {
+    } catch (e) {
       print(e);
-      // Handle exceptions
       _stopProvisioning();
     }
   }
 
-  Future<void> _showPasswordDialog(String? wifiName, {String? errorMessage}) async {
+  Future<void> _showWifiPasswordDialog(String? wifiName, {String? errorMessage}) async {
     await showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Enter WiFi Password for $wifiName'),
-          content: TextField(
-            controller: passwordController,
-            decoration: InputDecoration(
-              hintText: 'Password',
-              errorText: errorMessage,
+          content: Form(
+            key: _passwordFormKey,
+            child: TextFormField(
+              controller: passwordController,
+              decoration: InputDecoration(
+                hintText: 'Password',
+                errorText: errorMessage,
+              ),
+              validator: (val) {
+                if (val == null || val.isEmpty) {
+                  return 'Please enter a valid WiFi password';
+                }
+
+                if (val.length < 8) {
+                  return 'Password must be at least 8 characters long';
+                }
+
+                return null;
+              },
             ),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                if (_passwordFormKey.currentState!.validate()) {
+                  Navigator.of(context).pop();
+                  _startProvisioning();
+                }
               },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                // Assign the password and pop the dialog
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
+              child: const Text('Proceed'),
             ),
           ],
         );
       },
     );
-
-    // Check if the user submitted a password
-    if (passwordController.text.isNotEmpty) {
-      // Start provisioning
-      _startProvisioning();
-    } else {
-      // Optionally show a message or handle the case where no password was provided
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid WiFi password'),
-        ),
-      );
-    }
   }
 
-
   Future<void> _showDeviceIdDialog() async {
-    String? deviceId;
-
     await showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Enter Device ID'),
-          content: TextField(
-            controller: deviceIdController,
-            decoration: const InputDecoration(
-              hintText: 'Device ID',
+          content: Form(
+            key: _deviceIdFormKey,
+            child: TextFormField(
+              controller: deviceIdController,
+              decoration: const InputDecoration(hintText: 'Please enter the device ID'),
+              validator: (val) {
+                if (val == null || val.isEmpty) {
+                  return 'Please enter a valid device ID';
+                }
+                return null;
+              },
             ),
           ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                if (_deviceIdFormKey.currentState!.validate()) {
+                  Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NetworkSelection(deviceId: deviceIdController.text),
+                        ),
+                      );
+                    }
               },
-              child: const Text('Cancel'),
+              child: const Text('Proceed'),
             ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showWifiConnectionDialog() async {
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('No WiFi connection'),
+          content: const Text('You are not connected to a WiFi network. In order to setup your device, please connect to a WiFi network.'),
+          actions: <Widget>[
             TextButton(
               onPressed: () {
-                // Assign the device ID and pop the dialog
-                deviceId = deviceIdController.text;
                 Navigator.of(context).pop();
               },
               child: const Text('OK'),
@@ -215,35 +265,18 @@ class _NetworkDetectionState extends State<NetworkDetection> {
         );
       },
     );
-
-    // Check if the user submitted a device ID
-    if (deviceId != null && deviceId!.isNotEmpty) {
-      // Navigate to a new screen with device info
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => NetworkSelection(deviceId: deviceId),
-        ),
-            (route) => false,
-      );
-    } else {
-      // Optionally show a message or handle the case where no device ID was provided
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid Device ID'),
-        ),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Network detection'), centerTitle: true),
+      appBar: AppBar(
+          centerTitle: true,
+          title: const Text('Network detection')
+      ),
       body: SafeArea(
-        bottom: true,
-        minimum: const EdgeInsets.symmetric(horizontal: 10),
+        minimum: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -275,7 +308,7 @@ class _NetworkDetectionState extends State<NetworkDetection> {
                         height: 75,
                       ),
                       onPressed: () {
-                        showPulsator ? _stopProvisioning() : _init();
+                        showPulsator ? _stopProvisioning() : _startProvisioning();
                       },
                     ),
                   ),
@@ -296,6 +329,7 @@ class _NetworkDetectionState extends State<NetworkDetection> {
 
   @override
   void dispose() {
+    _networkConnectivity.disposeStream();
     deviceIdController.dispose();
     passwordController.dispose();
     _stopProvisioning();

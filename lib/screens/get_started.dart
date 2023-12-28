@@ -1,6 +1,8 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
-import 'package:irrigation/utils/network_connectivity.dart';
+import 'package:gap/gap.dart';
+import 'package:irrigation/utils/colors.dart';
+
+import 'network_detection.dart';
 
 class GetStarted extends StatefulWidget {
   const GetStarted({super.key});
@@ -10,64 +12,81 @@ class GetStarted extends StatefulWidget {
 }
 
 class _GetStartedState extends State<GetStarted> {
-  Map _source = {ConnectivityResult.none: false};
-  final NetworkConnectivity _networkConnectivity = NetworkConnectivity.instance;
-  String string = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _networkConnectivity.initialise();
-    _networkConnectivity.myStream.listen((source) {
-      _source = source;
-      print('source $_source');
-      // 1.
-      switch (_source.keys.toList()[0]) {
-        case ConnectivityResult.mobile:
-          string =
-          _source.values.toList()[0] ? 'Mobile: Online' : 'Mobile: Offline';
-          break;
-        case ConnectivityResult.wifi:
-          string =
-          _source.values.toList()[0] ? 'WiFi: Online' : 'WiFi: Offline';
-          break;
-        case ConnectivityResult.none:
-        default:
-          string = 'Offline';
-      }
-      // 2.
-      setState(() {});
-      // 3.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            string,
-            style: TextStyle(fontSize: 30),
-          ),
-        ),
-      );
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.accentColor,
       appBar: AppBar(
-        centerTitle: true,
-
-        backgroundColor: const Color(0xff6ae792),
+        title: const Text(
+          'Smart Irrigation',
+          style: TextStyle(
+            color: AppColors.primaryColor,
+          ),
+        ),
+        backgroundColor: AppColors.accentColor,
+        shape: const Border(),
       ),
-      body: Center(
-          child: Text(
-            string,
-            style: TextStyle(fontSize: 54),
-          )),
-    );
-  }
+      body: SafeArea(
+        minimum: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Image.asset(
+                      'assets/images/crop_monitoring.png',
+                      width: double.infinity,
+                    ),
+                    Column(
+                      children: [
+                        const Text(
+                          'Welcome to',
+                          style: TextStyle(
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                            height: 1.2,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const Text(
+                          'Smart Irrigation System',
+                          style: TextStyle(
+                            fontSize: 50,
+                            fontWeight: FontWeight.w900,
+                            height: 1.2,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const Gap(20),
+                        Text(
+                          'Smart Irrigation System is an IoT based system which monitors the soil moisture and sends the data to the cloud. The farmer can access the data from the cloud and can take necessary actions.',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
 
-  @override
-  void dispose() {
-    _networkConnectivity.disposeStream();
-    super.dispose();
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const NetworkDetection())
+                        );
+                      },
+                      child: const Text(
+                        'Get Started',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
