@@ -11,21 +11,27 @@ dependencies:
 
   cupertino_icons: ^1.0.6
   pulsator: ^1.0.0+2
+  device_scan_animation: ^0.0.6
   google_fonts: ^6.1.0
   gap: ^3.0.1
   intl: ^0.18.0
   firebase_core: ^2.24.2
+  firebase_database: ^10.4.0
   connectivity_plus: ^5.0.2
-  network_info_plus: ^4.1.0
   permission_handler: ^11.1.0
-  esp_smartconfig: ^1.1.11
+  esptouch_smartconfig: ^1.1.0
   fl_chart: ^0.66.0
   flutter_svg: ^2.0.9
-  animate_do: ^3.1.2
+  app_settings: ^5.1.1
   url_launcher: ^6.2.2
-  page_transition: ^2.1.0
   flutter_neumorphic_plus: ^3.3.0
   syncfusion_flutter_gauges: ^24.1.43
+  shared_preferences: ^2.2.2
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
+  open_meteo: ^0.0.10
+  flutter_glow: ^0.3.0
+  sklite: ^1.0.0
 
 dev_dependencies:
   flutter_test:
@@ -33,6 +39,7 @@ dev_dependencies:
 
   flutter_lints: ^3.0.1
   flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.3.9
   flutter_oss_licenses: ^2.0.1
 
 flutter_launcher_icons:
@@ -41,9 +48,17 @@ flutter_launcher_icons:
   remove_alpha_ios: true
   image_path: "assets/play_store_512.png"
 
+flutter_native_splash:
+    color: "#01baf4"
+    image: "assets/play_store_512.png"
+    android: true
+    ios: true
+
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/
+    - assets/icons/
     - google_fonts/
+    - assets/rfc.json

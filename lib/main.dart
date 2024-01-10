@@ -1,8 +1,7 @@
 import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
-import 'package:irrigation/screens/get_started.dart';
-import 'package:irrigation/screens/licenses_page.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:irrigation/screens/network_detection.dart';
+import 'package:irrigation/screens/get_started.dart';
+import 'package:irrigation/screens/home_page.dart';
 import 'package:irrigation/utils/theme.dart';
 import 'package:flutter/services.dart';
 import 'firebase_options.dart';
@@ -32,7 +31,7 @@ class RajeshIot extends StatelessWidget {
       title: 'Smart Irrigation',
       debugShowCheckedModeBanner: false,
       materialTheme: AppTheme.materialTheme,
-      home: const NetworkDetection(),
+      home: const HomePage()
     );
   }
 }

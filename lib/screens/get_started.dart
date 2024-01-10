@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:irrigation/screens/home_page.dart';
 import 'package:irrigation/utils/colors.dart';
+import 'package:irrigation/utils/prefs.dart';
 
 import 'network_detection.dart';
 
@@ -12,6 +14,23 @@ class GetStarted extends StatefulWidget {
 }
 
 class _GetStartedState extends State<GetStarted> {
+
+  @override
+  void initState() {
+    checkSetup();
+    super.initState();
+  }
+
+  void checkSetup() {
+    AppPrefs().getDevices().then((devices) {
+      if (devices.isNotEmpty) {
+        Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomePage())
+        );
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,13 +47,13 @@ class _GetStartedState extends State<GetStarted> {
         shape: const Border(),
       ),
       body: SafeArea(
-        minimum: const EdgeInsets.all(20),
+        minimum: const EdgeInsets.fromLTRB(20, 50, 20, 20),
         child: Column(
           children: [
             Expanded(
               child: Center(
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Image.asset(
                       'assets/images/crop_monitoring.png',

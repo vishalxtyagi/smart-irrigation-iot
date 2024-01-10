@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_glow/flutter_glow.dart';
 
-import 'package:flutter_weather_app/models/weather_forecast_daily.dart';
-import 'package:flutter_weather_app/utilities/forecast_util.dart';
-import 'package:flutter_weather_app/widgets/extra_widget.dart';
+import 'package:irrigation/utils/weather.dart';
+import 'package:irrigation/widgets/weather/extra_details.dart';
 
 class CurrentWeather extends StatelessWidget {
-  final AsyncSnapshot<WeatherForecast> snapshot;
+  final AsyncSnapshot<Map<String, dynamic>> snapshot;
 
   const CurrentWeather({
-    Key? key,
+    super.key,
     required this.snapshot,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    var data = snapshot.data;
-    var forecastList = data!.list!;
-    var temp = forecastList[0].temp!.day!.toStringAsFixed(0);
-    var formattedDate =
-        DateTime.fromMillisecondsSinceEpoch(forecastList[0].dt! * 1000);
+    var data = snapshot.data!;
+    var current = data["current"];
+    var temp = 0;
+    // current.temperature2m!.toStringAsFixed(0);
+    var formattedDate = DateTime.parse('${current["time"]}');
 
     return GlowContainer(
       height: MediaQuery.of(context).size.height - 230,
@@ -35,7 +34,8 @@ class CurrentWeather extends StatelessWidget {
       child: Column(
         children: [
           GlowText(
-            data.city!.name!,
+            // data.city!,
+            'city',
             style: const TextStyle(
               height: 0.1,
               fontWeight: FontWeight.bold,
@@ -48,7 +48,7 @@ class CurrentWeather extends StatelessWidget {
               children: [
                 Image(
                   image: AssetImage(
-                    Util.findIcon('${forecastList[0].weather![0].main}', true),
+                    WeatherUtil.findIcon('${current.weatherCode}', true),
                   ),
                   fit: BoxFit.fill,
                 ),
@@ -68,11 +68,11 @@ class CurrentWeather extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '${forecastList[0].weather![0].description}',
+                          '${WeatherUtil.getWeatherDescription(current.weatherCode!)}',
                           style: const TextStyle(fontSize: 25),
                         ),
                         Text(
-                          Util.getFormattedDate(formattedDate),
+                          WeatherUtil.getFormattedDate(formattedDate),
                           style: const TextStyle(fontSize: 18),
                         ),
                       ],
@@ -84,7 +84,7 @@ class CurrentWeather extends StatelessWidget {
           ),
           const Divider(color: Colors.white),
           const SizedBox(height: 10),
-          ExtraWeather(snapshot: snapshot),
+          ExtraDetails(snapshot: snapshot),
         ],
       ),
     );

@@ -1,50 +1,16 @@
-import 'dart:convert';
-import 'dart:developer';
-
-import 'package:irrigation/models/weather_forecast_daily.dart';
 import 'package:irrigation/utils/location.dart';
-import 'package:http/http.dart' as http;
+import 'package:open_meteo/open_meteo.dart';
 
 class WeatherApi {
-  Future<WeatherForecast> fetchWeatherForecast(
-      {String? cityName, bool? isCity}) async {
-    Location location = Location();
-    await location.getCurrentLocation();
 
-    Map<String, String?> parameters;
+  Future<Map<String, dynamic>> fetchWeatherForecast(
+      {String? lat, String? lon, String? address}) async {
 
-    if (isCity == true) {
-      var queryParameters = {
-        'units': 'metric',
-        'q': cityName,
-      };
+    LocationUtil location = LocationUtil();
+    await location.findCoordinates(lat, lon, address);
 
-      parameters = queryParameters;
-    } else {
-      var queryParameters = {
-        'lat': location.latitude.toString(),
-        'lon': location.longitude.toString(),
-      };
-
-      parameters = queryParameters;
-    }
-
-    var uri = Uri.https(
-      "api.open-meteo.com",
-      "/v1/forecast",
-      parameters,
-    );
-
-    log('request: ${uri.toString()}');
-
-    var response = await http.get(uri);
-
-    print('response: ${response.body}');
-
-    if (response.statusCode == 200) {
-      return WeatherForecast.fromJson(json.decode(response.body));
-    } else {
-      throw Future.error('Error response');
-    }
+    return await OpenMeteo(
+        latitude: location.latitude!, longitude: location.longitude!, current_weather: true
+    ).raw_request(daily: Daily(all: true));
   }
 }

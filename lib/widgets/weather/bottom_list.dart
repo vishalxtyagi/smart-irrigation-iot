@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_weather_app/models/weather_forecast_daily.dart';
-import 'package:flutter_weather_app/utilities/forecast_util.dart';
+import 'package:intl/intl.dart';
+import 'package:irrigation/utils/weather.dart';
 
 class ButtomListView extends StatelessWidget {
-  final AsyncSnapshot<WeatherForecast> snapshot;
+  final AsyncSnapshot<Map<String, dynamic>> snapshot;
 
   const ButtomListView({
-    Key? key,
+    super.key,
     required this.snapshot,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class ButtomListView extends StatelessWidget {
                 );
               },
               separatorBuilder: (context, index) => const SizedBox(width: 8),
-              itemCount: snapshot.data!.list!.length,
+              itemCount: snapshot.data!["daily"]["weathercode"].length,
             ),
           )
         ],
@@ -53,14 +53,11 @@ class ButtomListView extends StatelessWidget {
   }
 }
 
-Widget forecastCard(AsyncSnapshot snapshot, int index) {
-  var forecastList = snapshot.data.list;
-  var dayOfWeek = '';
-  DateTime date =
-      DateTime.fromMillisecondsSinceEpoch(forecastList[index].dt * 1000);
-  var fullDate = Util.getFormattedDate(date);
-  dayOfWeek = fullDate.split(',')[0]; // Tue
-  var tempMin = forecastList[index].temp.min.toStringAsFixed(0);
+Widget forecastCard(AsyncSnapshot<Map<String, dynamic>> snapshot, int index) {
+  var daily = snapshot.data!["daily"];
+  DateTime date = DateTime.parse('${daily.time![index]}');
+  var dayOfWeek = DateFormat('E').format(date);
+  var tempMin = daily.temperature2mMin![index].toStringAsFixed(0);
   return Column(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
@@ -70,7 +67,7 @@ Widget forecastCard(AsyncSnapshot snapshot, int index) {
       ),
       Image(
         image: AssetImage(
-          Util.findIcon('${forecastList[index].weather![0].main}', false),
+          WeatherUtil.findIcon('${daily.weatherCode![index]}', false),
         ),
         width: 55,
         height: 55,

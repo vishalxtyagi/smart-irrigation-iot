@@ -1,38 +1,71 @@
-import 'package:irrigation/models/city.dart';
-import 'package:irrigation/models/weather_list.dart';
+import 'current.dart';
+import 'daily.dart';
 
 class WeatherForecast {
-  City? city;
-  String? cod;
-  double? message;
-  int? cnt;
-  List<WeatherList>? list;
+  double? latitude;
+  double? longitude;
+  String? city;
+  double? generationTimeMs;
+  int? utcOffsetSeconds;
+  String? timezone;
+  String? timezoneAbbreviation;
+  double? elevation;
+  CurrentUnits? currentUnits;
+  Current? current;
+  DailyUnits? dailyUnits;
+  Daily? daily;
 
-  WeatherForecast({this.city, this.cod, this.message, this.cnt, this.list});
+  WeatherForecast({
+    this.latitude,
+    this.longitude,
+    this.generationTimeMs,
+    this.utcOffsetSeconds,
+    this.timezone,
+    this.timezoneAbbreviation,
+    this.elevation,
+    this.currentUnits,
+    this.current,
+    this.dailyUnits,
+    this.daily,
+  });
 
-  WeatherForecast.fromJson(Map<String, dynamic> json) {
-    city = json['city'] != null ? City.fromJson(json['city']) : null;
-    cod = json['cod'];
-    message = json['message'];
-    cnt = json['cnt'];
-    if (json['list'] != null) {
-      list = <WeatherList>[];
-      json['list'].forEach((v) {
-        list!.add(WeatherList.fromJson(v));
-      });
-    }
+  factory WeatherForecast.fromJson(Map<String, dynamic> json) {
+    print('WeatherForecast.fromJson: $json');
+    return WeatherForecast(
+      latitude: json['latitude'],
+      longitude: json['longitude'],
+      generationTimeMs: json['generationtime_ms'],
+      utcOffsetSeconds: json['utc_offset_seconds'],
+      timezone: json['timezone'],
+      timezoneAbbreviation: json['timezone_abbreviation'],
+      elevation: json['elevation'],
+      currentUnits: CurrentUnits.fromJson(json['current_weather_units']),
+      current: Current.fromJson(json['current_weather']),
+      dailyUnits: DailyUnits.fromJson(json['daily_units']),
+      daily: Daily.fromJson(json['daily']),
+    );
   }
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = <String, dynamic>{};
-    if (city != null) {
-      data['city'] = city!.toJson();
+    data['latitude'] = latitude;
+    data['longitude'] = longitude;
+    data['generationtime_ms'] = generationTimeMs;
+    data['utc_offset_seconds'] = utcOffsetSeconds;
+    data['timezone'] = timezone;
+    data['timezone_abbreviation'] = timezoneAbbreviation;
+    data['elevation'] = elevation;
+    if (currentUnits != null) {
+      data['current_weather_units'] = currentUnits!.toJson();
     }
-    data['cod'] = cod;
-    data['message'] = message;
-    data['cnt'] = cnt;
-    if (list != null) {
-      data['list'] = list!.map((v) => v.toJson()).toList();
+    if (current != null) {
+      data['current_weather'] = current!.toJson();
+    }
+    if (dailyUnits != null) {
+      data['daily_units'] = dailyUnits!.toJson();
+    }
+    if (daily != null) {
+      data['daily'] = daily!.toJson();
     }
     return data;
   }

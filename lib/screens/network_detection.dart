@@ -1,17 +1,19 @@
 import 'dart:async';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:device_scan_animation/device_scan_animation.dart';
+import 'package:esptouch_smartconfig/esptouch_smartconfig.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:gap/gap.dart';
 import 'package:irrigation/screens/network_selection.dart';
-import 'package:irrigation/utils/network_connectivity.dart';
+import 'package:irrigation/utils/colors.dart';
+import 'package:irrigation/utils/permission.dart';
 import 'package:irrigation/utils/size_config.dart';
 import 'package:irrigation/utils/styles.dart';
-import 'package:network_info_plus/network_info_plus.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:esp_smartconfig/esp_smartconfig.dart';
 import 'package:pulsator/pulsator.dart';
+
 
 class NetworkDetection extends StatefulWidget {
   const NetworkDetection({super.key});
@@ -31,179 +33,132 @@ class _NetworkDetectionState extends State<NetworkDetection> {
   late TextEditingController passwordController;
   late TextEditingController deviceIdController;
 
-  final StreamController<ProvisioningResponse> _provisioningController = StreamController<ProvisioningResponse>();
-  StreamSubscription<ProvisioningResponse>? provisionerSubscription;
+  late Connectivity _connectivity;
+  late Stream<ConnectivityResult> _connectivityStream;
+  late StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  final List<String> _devices = [];
 
-  final NetworkConnectivity _networkConnectivity = NetworkConnectivity.instance;
-  final provisioner = Provisioner.espTouch();
-  Map _source = {ConnectivityResult.none: false};
+  Stream<ESPTouchResult>? _espStream;
+  StreamSubscription<ESPTouchResult>? _espSubscription;
+
+  int deviceCount = 5;
+  bool isWifiConnected = true;
   bool showPulsator = false;
-  bool isWifiConnected = false;
-  bool deviceDetected = false;
+  bool isBroad = true;
 
   @override
   void initState() {
     super.initState();
-    _networkConnectivity.initialise();
-    _networkConnectivity.myStream.listen((source) {
-      _source = source;
-
-      switch (_source.keys.toList()[0]) {
-        case ConnectivityResult.wifi:
-          setState(() {
-            isWifiConnected = true;
-          });
-          break;
-        default:
-          setState(() {
-            isWifiConnected = false;
-          });
-          break;
-      }
-
-      if (!isWifiConnected) {
-        _stopProvisioning();
-      }
+    _connectivity = Connectivity();
+    _connectivityStream = _connectivity.onConnectivityChanged;
+    _connectivitySubscription = _connectivityStream.listen((e) {
+      setState(() {
+        isWifiConnected = e == ConnectivityResult.wifi;
+      });
     });
     passwordController = TextEditingController();
     deviceIdController = TextEditingController();
 
-    _checkLocationPermissions();
+    _initializeProvisioning();
   }
 
-  void handleProvisioningResponse(response) {
-    print('Device connected!');
-    final deviceId = response.bssidText.replaceAll(':', '');
-    print("Device ID: $deviceId\nconnected to WiFi!");
-    setState(() {
-      deviceDetected = true;
-    });
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => NetworkSelection(deviceId: deviceId),
-      ),
-    );
-  }
-
-  Future<void> _checkLocationPermissions() async {
-    var status = await Permission.location.status;
-    if (status.isRestricted || status.isPermanentlyDenied) {
-      await Permission.locationWhenInUse.request();
-    } else if (status.isDenied) {
-      await Permission.location.request();
+  Future<void> _initializeProvisioning() async {
+    Map<String, String>? wifiData = await EsptouchSmartconfig.wifiData();
+    if (wifiData != null) {
+      await _startProvisioning(wifiData);
     }
   }
 
-  void _stopProvisioning() async {
-    print(provisioner.running);
-    print(provisionerSubscription);
-    if (provisionerSubscription != null && !provisionerSubscription!.isPaused) {
-      try {
-        print('Closing subscription');
-        _provisioningController.close();
-        print('Canceling subscription');
-        await provisionerSubscription!.cancel();
-      } catch (e) {
-        print('Error while canceling subscription: $e');
-      }
-    }
-
-    print(provisionerSubscription);
-    if (provisioner.running) provisioner.stop();
+  Future<void> _stopProvisioning() async {
+    _devices.clear();
+    await _espSubscription?.cancel();
     setState(() {
       showPulsator = false;
     });
   }
 
-  Future<void> _startProvisioning() async {
-    _checkLocationPermissions();
+  Future<void> _startProvisioning(Map<String, String> map) async {
+    await AppPermission.requestLocationPermission();
+    await _showWifiPasswordDialog(map['wifiName']);
+    await _stopProvisioning();
+    _espStream = EsptouchSmartconfig.run(
+        ssid: map['wifiName']!,
+        bssid: map['bssid']!,
+        password: passwordController.text,
+        deviceCount: deviceCount.toString(),
+        isBroad: isBroad);
 
-    if (!isWifiConnected) {
-      _showWifiConnectionDialog();
-      return;
-    }
+    setState(() {
+      showPulsator = true;
+    });
 
-    _stopProvisioning();
-
-    Completer<void> provisioningCompleter = Completer();
-
-    try {
-      final info = NetworkInfo();
-
-      final wifiName = await info.getWifiName();
-      final wifiBSSID = await info.getWifiBSSID();
-
-      if (passwordController.text.isEmpty) {
-        await _showWifiPasswordDialog(wifiName);
-      }
-
+    _espSubscription = _espStream!.listen((event) {
       setState(() {
-        showPulsator = true;
+        _devices.add(event.bssid.replaceAll(':', ''));
       });
-
-      provisionerSubscription = provisioner.listen((response) {
-        handleProvisioningResponse(response);
-      });
-
-      await Future.any([
-        provisioner.start(ProvisioningRequest.fromStrings(
-          ssid: wifiName?.replaceAll('"', '') ?? '',
-          bssid: wifiBSSID ?? '',
-          password: passwordController.text,
-        )),
-        Future.delayed(const Duration(seconds: 120), () {
-          _stopProvisioning();
-          provisioningCompleter.complete();
-          _showWifiPasswordDialog(wifiName, errorMessage: 'Password may be incorrect.');
-        }),
-      ]);
-    } catch (e) {
-      print(e);
-      _stopProvisioning();
-    }
+    });
   }
 
   Future<void> _showWifiPasswordDialog(String? wifiName, {String? errorMessage}) async {
     await showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Enter WiFi Password for $wifiName'),
-          content: Form(
-            key: _passwordFormKey,
-            child: TextFormField(
-              controller: passwordController,
-              decoration: InputDecoration(
-                hintText: 'Password',
-                errorText: errorMessage,
+        return StatefulBuilder(builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Enter WiFi Password for $wifiName'),
+            content: Form(
+                key: _passwordFormKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: passwordController,
+                      decoration: const InputDecoration(hintText: 'Please enter the WiFi password'),
+                    ),
+                    const Gap(30),
+                    Text('Total Devices to be connected: $deviceCount'),
+                    // slider
+                    Slider(
+                      value: deviceCount.toDouble(),
+                      label: deviceCount.toString(),
+                      onChanged: (value) {
+                        setState(() {
+                          deviceCount = value.toInt();
+                        });
+                      },
+                      min: 1,
+                      max: 5,
+                      divisions: 4,
+                    ),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: isBroad,
+                          onChanged: (val) {
+                            setState(() {
+                              isBroad = val!;
+                            });
+                          },
+                        ),
+                        const Text('Broadcast to all devices'),
+                      ],
+                    ),
+                    if (errorMessage != null) Text(errorMessage, style: const TextStyle(color: Colors.red)),
+                  ],
+                )
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () async {
+                  if (_passwordFormKey.currentState!.validate()) {
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: const Text('Proceed'),
               ),
-              validator: (val) {
-                if (val == null || val.isEmpty) {
-                  return 'Please enter a valid WiFi password';
-                }
-
-                if (val.length < 8) {
-                  return 'Password must be at least 8 characters long';
-                }
-
-                return null;
-              },
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                if (_passwordFormKey.currentState!.validate()) {
-                  Navigator.of(context).pop();
-                  _startProvisioning();
-                }
-              },
-              child: const Text('Proceed'),
-            ),
-          ],
-        );
+            ],
+          );
+        });
       },
     );
   }
@@ -231,35 +186,18 @@ class _NetworkDetectionState extends State<NetworkDetection> {
             TextButton(
               onPressed: () {
                 if (_deviceIdFormKey.currentState!.validate()) {
+                  Navigator.of(context).pop();
                   Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => NetworkSelection(deviceId: deviceIdController.text),
-                        ),
-                      );
-                    }
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NetworkSelection(
+                        devices: [deviceIdController.text],
+                      ),
+                    ),
+                  );
+                }
               },
               child: const Text('Proceed'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _showWifiConnectionDialog() async {
-    await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('No WiFi connection'),
-          content: const Text('You are not connected to a WiFi network. In order to setup your device, please connect to a WiFi network.'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
             ),
           ],
         );
@@ -277,7 +215,7 @@ class _NetworkDetectionState extends State<NetworkDetection> {
       ),
       body: SafeArea(
         minimum: const EdgeInsets.all(20),
-        child: Column(
+        child: isWifiConnected ? Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -291,30 +229,121 @@ class _NetworkDetectionState extends State<NetworkDetection> {
               style: Styles.textStyle,
             ),
             Expanded(
-              child: Stack(
-                children: [
-                  if (showPulsator)
-                  Pulsator(
-                    style: const PulseStyle(color: Colors.green),
-                    count: _count,
-                    duration: Duration(seconds: _duration),
-                    repeat: _repeatCount,
-                  ),
-                  Center(
-                    child: IconButton(
-                      icon: SvgPicture.asset(
-                        "assets/images/${showPulsator ? 'logo_white' : 'logo'}.svg",
-                        semanticsLabel: 'Logo',
-                        height: 75,
-                      ),
-                      onPressed: () {
-                        showPulsator ? _stopProvisioning() : _startProvisioning();
-                      },
+              child: FutureBuilder<Map<String, String>?>(
+                future: EsptouchSmartconfig.wifiData(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.connectionState == ConnectionState.done) {
+                    return Stack(
+                        children: [
+                          if (showPulsator) _devices.isEmpty ?
+                            Pulsator(
+                              style: const PulseStyle(color: Colors.green),
+                              count: _count,
+                              duration: Duration(seconds: _duration),
+                              repeat: _repeatCount,
+                            ) : Center(
+                            child: DeviceScanWidget(
+                              duration: Duration(seconds: _duration),
+                              newNodesDuration: const Duration(seconds: 10),
+                              scanColor: Colors.lightGreenAccent,
+                              centerNodeColor: AppColors.primaryColor,
+                              nodeColor: Colors.green,
+                              layers: _devices.length,
+                              gap: _devices.length == 1 ? 100 : getProportionateScreenWidth(165) / _devices.length
+                            ),
+                          ),
+                          Center(
+                            child: IconButton(
+                              icon: SvgPicture.asset(
+                                "assets/images/${(showPulsator && _devices.isEmpty) ? 'logo_white' : 'logo'}.svg",
+                                semanticsLabel: 'Logo',
+                                height: 75,
+                              ),
+                              onPressed: () async {
+                                showPulsator ? await _stopProvisioning() : await _startProvisioning(snapshot.data!);
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                  } else {
+                    return Container(
+                      alignment: Alignment.center,
+                      child: const CircularProgressIndicator(),
+                    );
+                  }
+                }),
+            ),
+            TextButton(
+              onPressed: () async {
+                _devices.isNotEmpty ? Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NetworkSelection(
+                      devices: _devices,
                     ),
                   ),
-                ],
+                ) :
+                await _showDeviceIdDialog();
+              },
+              child: Text(_devices.isEmpty ? 'Connect manually' : 'Proceed'),
+            ),
+          ],
+        ) : Column(
+          children: [
+            Expanded(
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.wifi_off_rounded,
+                    size: 200,
+                    color: Colors.red,
+                  ),
+                  const Gap(30),
+                  RichText(
+                    text: const TextSpan(
+                      text: 'If you want to set up a device ',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 15),
+                      children: [
+                        TextSpan(
+                          text: '(i.e., add/change WiFi configurations of sensor device)',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        TextSpan(
+                          text: ', then please connect to the same WiFi network.\n\n\n',
+                        ),
+                      ]
+                    )
+                  ),
+                  RichText(
+                      text: const TextSpan(
+                          style: TextStyle(color: TextColors.dark, fontSize: 15),
+                          children: [
+                            TextSpan(
+                              text: 'Note: ',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            TextSpan(
+                              text: 'If the device is already set up, ',
+                            ),
+                            TextSpan(
+                              text: 'you can use the connect manually option by entering the device ID.',
+                              style: TextStyle(fontStyle: FontStyle.italic),
+                            ),
+                          ]
+                      )
+                  ),
+                ]
               ),
             ),
+            TextButton(
+              onPressed: () async {
+                await AppSettings.openAppSettings(type: AppSettingsType.wifi);
+              },
+              child: const Text('Open WiFi settings'),
+            ),
+            const Gap(20),
             TextButton(
               onPressed: () async {
                 await _showDeviceIdDialog();
@@ -328,11 +357,11 @@ class _NetworkDetectionState extends State<NetworkDetection> {
   }
 
   @override
-  void dispose() {
-    _networkConnectivity.disposeStream();
+  void dispose() async {
+    await _stopProvisioning();
+    await _connectivitySubscription.cancel();
     deviceIdController.dispose();
     passwordController.dispose();
-    _stopProvisioning();
     super.dispose();
   }
 }

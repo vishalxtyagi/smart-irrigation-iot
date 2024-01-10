@@ -1,10 +1,25 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 class Humidity extends StatefulWidget {
   final Function(bool) isHideBottomNavBar;
+  final List<double> humidityData;
+  final double currentHumidity;
+  final double averageHumidity;
+  final double highestHumidity;
+  final double lowestHumidity;
 
-  const Humidity({super.key, required this.isHideBottomNavBar});
+
+  const Humidity({
+    required this.humidityData,
+    required this.currentHumidity,
+    required this.averageHumidity,
+    required this.highestHumidity,
+    required this.lowestHumidity,
+    required this.isHideBottomNavBar,
+    super.key,
+  });
 
   @override
   State<Humidity> createState() => _HumidityState();
@@ -37,10 +52,33 @@ class _HumidityState extends State<Humidity> with AutomaticKeepAliveClientMixin<
 
     return NotificationListener<ScrollNotification>(
       onNotification: _handleScrollNotification,
-      child: const Scaffold(
-        body: Center(
-          child: Center(
-            child: Text('Humidity'),
+      child: Padding(
+        padding: EdgeInsets.all(16.0),
+        child: LineChart(
+          LineChartData(
+            gridData: FlGridData(show: false),
+            titlesData: FlTitlesData(show: false),
+            borderData: FlBorderData(
+              show: true,
+              border: Border.all(color: const Color(0xff37434d), width: 1),
+            ),
+            minX: 0,
+            maxX: widget.humidityData.length.toDouble() - 1,
+            minY: widget.lowestHumidity - 5,
+            maxY: widget.highestHumidity + 5,
+            lineBarsData: [
+              LineChartBarData(
+                spots: widget.humidityData
+                    .asMap()
+                    .entries
+                    .map((entry) => FlSpot(entry.key.toDouble(), entry.value))
+                    .toList(),
+                isCurved: true,
+                color: Colors.blue, // Change to blue for humidity
+                dotData: FlDotData(show: false),
+                belowBarData: BarAreaData(show: false),
+              ),
+            ],
           ),
         ),
       ),

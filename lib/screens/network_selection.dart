@@ -1,46 +1,115 @@
 import 'package:flutter/material.dart';
-import 'package:pulsator/pulsator.dart';
+import 'package:gap/gap.dart';
+import 'package:irrigation/utils/prefs.dart';
+import 'package:irrigation/utils/size_config.dart';
+
+import 'home_page.dart';
 
 class NetworkSelection extends StatefulWidget {
-  var deviceId;
+  const NetworkSelection({
+      required this.devices,
+      super.key
+  });
 
-  NetworkSelection({super.key, required this.deviceId});
+  final List<String> devices;
 
   @override
-  State<NetworkSelection> createState() => _NetworkSelectionState();
+  State<StatefulWidget> createState() {
+    return NetworkSelectionState();
+  }
 }
 
-class _NetworkSelectionState extends State<NetworkSelection> {
-  final int _count = 4;
-  final int _duration = 3;
-  final int _repeatCount = 0;
+class NetworkSelectionState extends State<NetworkSelection> {
+  final List<Map<String, dynamic>> devices = [];
+
+  @override
+  void initState() {
+    super.initState();
+
+    for (var element in widget.devices) {
+      devices.add({
+        'id': element,
+        'name': 'My device ${devices.length + 1}',
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      });
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
+    SizeConfig.init(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Network selection..')),
+      appBar: AppBar(
+          centerTitle: true,
+          title: const Text('Network selection'),
+      ),
       body: SafeArea(
-        bottom: true,
+        minimum: const EdgeInsets.all(20),
         child: Column(
           children: [
             Expanded(
-              child: Stack(
-                children: [
-                  Pulsator(
-                    style: const PulseStyle(color: Colors.red),
-                    count: _count,
-                    duration: Duration(seconds: _duration),
-                    repeat: _repeatCount,
-                  ),
-                  Center(
-                    child: Image.asset(
-                      'assets/android_phone.png',
-                      width: 128,
-                      height: 128,
+              child: ListView.builder(
+                itemCount: devices.length,
+                itemBuilder: (context, index) {
+                  return Card(
+                    child: ListTile(
+                      title: TextFormField(
+                        initialValue: devices[index]['name'],
+                        decoration: const InputDecoration(
+                          labelText: 'Name',
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            devices[index]['name'] = value;
+                          });
+                        },
+                      ),
+                      subtitle: Text(devices[index]['id']),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () {
+                          setState(() {
+                            devices.removeAt(index);
+                          });
+                        },
+                      ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
+            ),
+            const Gap(20),
+            TextButton(
+              onPressed: () async {
+                try{
+                  AppPrefs().saveDevices(devices)
+                      .then((value) => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HomePage())
+                  ));
+                } catch (e) {
+                  await showDialog(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text('Error'),
+                        content: Text(e.toString()),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: const Text('OK'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
+              },
+              child: const Text('Proceed'),
             ),
           ],
         ),
