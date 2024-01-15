@@ -28,7 +28,6 @@ class _WeatherPageState extends State<WeatherPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff030317),
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: const Color(0xff00A1FF),
@@ -86,7 +85,9 @@ class _WeatherPageState extends State<WeatherPage> {
           FutureBuilder<Map<String, dynamic>>(
             future: weatherObj,
             builder: (context, snapshot) {
+              print(snapshot);
               if (snapshot.hasData) {
+                print(snapshot.data);
                 return Column(
                   children: [
                     CurrentWeather(snapshot: snapshot),
@@ -97,7 +98,7 @@ class _WeatherPageState extends State<WeatherPage> {
                 return const Center(
                     child: Text(
                       'City not found\n Please enter correct city',
-                      style: TextStyle(fontSize: 25, color: Colors.white),
+                      style: TextStyle(fontSize: 25, color: Colors.black),
                       textAlign: TextAlign.center,
                     ));
               }

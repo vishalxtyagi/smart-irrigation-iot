@@ -11,11 +11,11 @@ class ExtraDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var current = snapshot.data!["current"];
+    var current = snapshot.data!["current_weather"];
 
-    var windSpeed = current.windSpeed10m;
-    var humidity = current.relativeHumidity2m;
-    var rain = current.cloudCover;
+    var windSpeed = current['wind_speed_10m'];
+    var humidity = current['relative_humidity_2m'];
+    var rain = current['cloud_cover'];
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,

@@ -1,8 +1,10 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:irrigation/screens/analytics_page.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class SoilMoisture extends StatefulWidget {
-  final List<double> moistureData; // List of historical soil moisture data
+  final List<SensorData> moistureData; // List of historical soil moisture data
   final double currentMoisture;
   final double averageMoisture;
   final double highestMoisture;
@@ -23,37 +25,35 @@ class SoilMoisture extends StatefulWidget {
 
 class _SoilMoistureState extends State<SoilMoisture>
     with AutomaticKeepAliveClientMixin<SoilMoisture> {
+
   @override
   Widget build(BuildContext context) {
+
+    // from moistureData, show me records that have highest element.time.day in list
+    var sensorData = widget.moistureData.where((element) => element.time.day == widget.moistureData.reduce((a, b) => a.time.day > b.time.day ? a : b).time.day).toList();
+    sensorData.sort((a, b) => a.time.compareTo(b.time));
+    print('Recent data: ${sensorData.map((e) => e.time).toList()}');
+
+
+
     return Padding(
       padding: EdgeInsets.all(16.0),
-      child: LineChart(
-        LineChartData(
-          gridData: FlGridData(show: false),
-          titlesData: FlTitlesData(show: false),
-          borderData: FlBorderData(
-            show: true,
-            border: Border.all(color: const Color(0xff37434d), width: 1),
+      child: SfCartesianChart(
+          primaryXAxis: DateTimeAxis(
+            dateFormat: DateFormat.Hms(),
+            intervalType: DateTimeIntervalType.hours,
+            interval: 1,
           ),
-          minX: 0,
-          maxX: widget.moistureData.length.toDouble() - 1,
-          minY: widget.lowestMoisture - 5,
-          maxY: widget.highestMoisture + 5,
-          lineBarsData: [
-            LineChartBarData(
-              spots: widget.moistureData
-                  .asMap()
-                  .entries
-                  .map((entry) => FlSpot(entry.key.toDouble(), entry.value))
-                  .toList(),
-              isCurved: true,
-              color: Colors.green, // Change to green for moisture
-              dotData: FlDotData(show: false),
-              belowBarData: BarAreaData(show: false),
-            ),
-          ],
-        ),
-      ),
+          series: <CartesianSeries>[
+            // Renders line chart
+            LineSeries<SensorData, DateTime>(
+                dataSource: sensorData,
+                xValueMapper: (SensorData sensor, _) => sensor.time,
+                yValueMapper: (SensorData sensor, _) => sensor.value,
+                dataLabelSettings: DataLabelSettings(isVisible: true),
+
+                enableTooltip: true)
+          ]),
     );
   }
 

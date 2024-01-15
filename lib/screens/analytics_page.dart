@@ -14,62 +14,68 @@ class AnalyticsPage extends StatefulWidget {
 }
 
 class _AnalyticsPageState extends State<AnalyticsPage> {
-  final DatabaseReference _databaseReference = FirebaseDatabase.instance.reference();
+  final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref("FirebaseIOT/68C63AD53478");
+  Map<dynamic, dynamic>? firebaseData;
 
-  Map<String, dynamic> _data = {
-    'Temperature': {
-      'historicalData': <double>[],
+  Map<dynamic, dynamic> _data = {
+      'historicalData': {
+        'temperature': <SensorData>[],
+        'humidity': <SensorData>[],
+        'soilMoisture': <SensorData>[],
+      },
       'current': 0.0,
       'average': 0.0,
       'highest': 0.0,
       'lowest': 0.0,
-    },
-    'Soil Moisture': {
-      'historicalData': <double>[],
-      'current': 0.0,
-      'average': 0.0,
-      'highest': 0.0,
-      'lowest': 0.0,
-    },
-    'Humidity': {
-      'historicalData': <double>[],
-      'current': 0.0,
-      'average': 0.0,
-      'highest': 0.0,
-      'lowest': 0.0,
-    },
-  };
+    };
 
   @override
   void initState() {
     super.initState();
     fetchData();
+    _databaseReference.keepSynced(true);
+    _databaseReference.onValue.listen((DatabaseEvent event) {
+      final dynamic snapshotValue = event.snapshot.value;
+      if (snapshotValue != null && snapshotValue is Map<dynamic, dynamic>) {
+        firebaseData = snapshotValue; // Assign Firebase data to firebaseData
+
+        // Fetch data when new data is received
+        fetchData();
+      } else {
+        print('Invalid snapshot value or null data received');
+      }
+
+      print(firebaseData);
+    });
   }
 
   Future<void> fetchData() async {
     try {
-      DatabaseEvent event = await _databaseReference.once();
-      Map<dynamic, dynamic> firebaseData = event.snapshot.value;
-
       if (firebaseData != null) {
-        List<dynamic> historyData = firebaseData['history'];
+        final Map<dynamic, dynamic>? historyData = firebaseData?['history'];
+        print('History Data');
+        print(historyData);
 
         if (historyData != null && historyData.isNotEmpty) {
+          print('History Data is not empty');
           // Clear existing data before updating
           _clearData();
 
           // Process the history data
-          historyData.forEach((entry) {
-            double timestamp = entry['timestamp'] ?? 0.0;
-            double humidity = entry['humidity'] ?? 0.0;
-            double soilMoisture = entry['soilMoisture'] ?? 0.0;
-            double temperature = entry['temperature'] ?? 0.0;
+          historyData.forEach((key, value) {
+            double timestamp = double.parse(key.toString());
+            DateTime dateTime = DateTime.fromMicrosecondsSinceEpoch((timestamp * 1000000).toInt());
+            double humidity = double.parse(value['humidity'].toString());
+            double soilMoisture = double.parse(value['soilMoisture'].toString());
+            double temperature = double.parse(value['temperature'].toString());
 
             // Update the data for each type (Temperature, Soil Moisture, Humidity)
-            _updateData('Temperature', timestamp, temperature);
-            _updateData('Soil Moisture', timestamp, soilMoisture);
-            _updateData('Humidity', timestamp, humidity);
+            _updateData('temperature', dateTime, temperature);
+            _updateData('humidity', dateTime, humidity);
+            _updateData('soilMoisture', dateTime, soilMoisture);
+
           });
+          print('hdshsf ${historyData.values.toList()}');
         }
       }
     } catch (error) {
@@ -81,24 +87,30 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   // Helper method to clear existing data
   void _clearData() {
-    _data.forEach((key, value) {
-      value['historicalData'] = <double>[];
-      value['current'] = 0.0;
-      value['average'] = 0.0;
-      value['highest'] = 0.0;
-      value['lowest'] = 0.0;
-    });
+    _data = {
+      'historicalData': {
+        'temperature': <SensorData>[],
+        'humidity': <SensorData>[],
+        'soilMoisture': <SensorData>[],
+      },
+      'current': 0.0,
+      'average': 0.0,
+      'highest': 0.0,
+      'lowest': 0.0,
+    };
   }
 
   // Helper method to update data for each type (Temperature, Soil Moisture, Humidity)
-  void _updateData(String type, double timestamp, double value) {
-    List<double> historicalData = _data[type]['historicalData'];
-    historicalData.add(value);
+  void _updateData(String type, DateTime dateTime, double value) {
+    List<SensorData> historicalData = _data['historicalData'][type];
+    historicalData.add(SensorData(dateTime, value));
 
-    _data[type]['current'] = value;
-    _data[type]['average'] = _calculateAverage(historicalData);
-    _data[type]['highest'] = _calculateHighest(historicalData);
-    _data[type]['lowest'] = _calculateLowest(historicalData);
+    _data['current'] = value;
+    _data['average'] = _calculateAverage(historicalData.map((e) => e.value).toList());
+    _data['highest'] = _calculateHighest(historicalData.map((e) => e.value).toList());
+    _data['lowest'] = _calculateLowest(historicalData.map((e) => e.value).toList());
+
+    print(_data);
   }
 
   // Helper method to calculate average
@@ -121,27 +133,28 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
+    print(_data);
     final Map<String, Widget> tabs = <String, Widget>{
       'Temperature': Temperature(
-        temperatureData: _data['Temperature']['historicalData'],
-        currentTemperature: _data['Temperature']['current'],
-        averageTemperature: _data['Temperature']['average'],
-        highestTemperature: _data['Temperature']['highest'],
-        lowestTemperature: _data['Temperature']['lowest'],
+        temperatureData: _data['historicalData']['temperature'],
+        currentTemperature: _data['current'],
+        averageTemperature: _data['average'],
+        highestTemperature: _data['highest'],
+        lowestTemperature: _data['lowest'],
       ),
       'Soil Moisture': SoilMoisture(
-        moistureData: _data['Soil Moisture']['historicalData'],
-        currentMoisture: _data['Soil Moisture']['current'],
-        averageMoisture: _data['Soil Moisture']['average'],
-        highestMoisture: _data['Soil Moisture']['highest'],
-        lowestMoisture: _data['Soil Moisture']['lowest'],
+        moistureData: _data['historicalData']['soilMoisture'],
+        currentMoisture: _data['current'],
+        averageMoisture: _data['average'],
+        highestMoisture: _data['highest'],
+        lowestMoisture: _data['lowest'],
       ),
       'Humidity': Humidity(
-        humidityData: _data['Humidity']['historicalData'],
-        currentHumidity: _data['Humidity']['current'],
-        averageHumidity: _data['Humidity']['average'],
-        highestHumidity: _data['Humidity']['highest'],
-        lowestHumidity: _data['Humidity']['lowest'],
+        humidityData: _data['historicalData']['humidity'],
+        currentHumidity: _data['current'],
+        averageHumidity: _data['average'],
+        highestHumidity: _data['highest'],
+        lowestHumidity: _data['lowest'],
         isHideBottomNavBar: (value) {
           widget.isHideBottomNavBar(value);
         },
@@ -163,4 +176,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       ),
     );
   }
+}
+
+class SensorData {
+  final DateTime time;
+  final double value;
+
+  SensorData(this.time, this.value);
 }

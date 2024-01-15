@@ -1,8 +1,11 @@
+
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+import 'package:irrigation/screens/analytics_page.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class Temperature extends StatefulWidget {
-  final List<double> temperatureData;
+  final List<SensorData> temperatureData;
   final double currentTemperature;
   final double averageTemperature;
   final double highestTemperature;
@@ -23,37 +26,34 @@ class Temperature extends StatefulWidget {
 
 class _TemperatureState extends State<Temperature>
     with AutomaticKeepAliveClientMixin<Temperature> {
+
   @override
   Widget build(BuildContext context) {
+
+    // from temperatureData, show me records that have highest element.time.day in list
+    var sensorData = widget.temperatureData.where((element) => element.time.day == widget.temperatureData.reduce((a, b) => a.time.day > b.time.day ? a : b).time.day).toList();
+    sensorData.sort((a, b) => a.time.compareTo(b.time));
+    print('Recent data: ${sensorData.map((e) => e.time).toList()}');
+
+
     return Padding(
       padding: EdgeInsets.all(16.0),
-      child: LineChart(
-        LineChartData(
-          gridData: FlGridData(show: false),
-          titlesData: FlTitlesData(show: false),
-          borderData: FlBorderData(
-            show: true,
-            border: Border.all(color: const Color(0xff37434d), width: 1),
+      child: SfCartesianChart(
+          primaryXAxis: DateTimeAxis(
+            dateFormat: DateFormat.Hms(),
+            intervalType: DateTimeIntervalType.hours,
+            interval: 1,
           ),
-          minX: 0,
-          maxX: widget.temperatureData.length.toDouble() - 1,
-          minY: widget.lowestTemperature - 5,
-          maxY: widget.highestTemperature + 5,
-          lineBarsData: [
-            LineChartBarData(
-              spots: widget.temperatureData
-                  .asMap()
-                  .entries
-                  .map((entry) => FlSpot(entry.key.toDouble(), entry.value))
-                  .toList(),
-              isCurved: true,
-              color: Colors.red,
-              dotData: FlDotData(show: false),
-              belowBarData: BarAreaData(show: false),
-            ),
-          ],
-        ),
-      ),
+          series: <CartesianSeries>[
+            // Renders line chart
+            LineSeries<SensorData, DateTime>(
+                dataSource: sensorData,
+                xValueMapper: (SensorData sensor, _) => sensor.time,
+                yValueMapper: (SensorData sensor, _) => sensor.value,
+                dataLabelSettings: DataLabelSettings(isVisible: true),
+
+                enableTooltip: true)
+          ]),
     );
   }
 

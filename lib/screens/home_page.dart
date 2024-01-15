@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:irrigation/screens/analytics_page.dart';
 import 'package:irrigation/screens/sprinkler_page.dart';
 import 'package:irrigation/screens/weather_page.dart';
+import 'package:irrigation/utils/colors.dart';
 import 'package:irrigation/utils/styles.dart';
 
 class HomePage extends StatefulWidget {
@@ -12,21 +13,28 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+
   int _selectedIndex = 0;
   late AnimationController animationController;
   late List<Widget> _pages;
 
-  Color? _bottomNavBarColor = Styles.greyColor;
+  Color? _bottomNavBarColor;
+  Color? _bottomNavItemColor;
+  Color? _bottomNavSelectedColor;
+
+  void updateBottomNavBarColor(bool isSprinklerOn) {
+    setState(() {
+      _bottomNavBarColor = isSprinklerOn ? Colors.blue[400] : Styles.whiteColor;
+      _bottomNavItemColor = isSprinklerOn ? Colors.white : Colors.black;
+      _bottomNavSelectedColor = isSprinklerOn ? Colors.white :  AppColors.primaryColor;
+    });
+  }
+
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      _updateBottomNavBarColor();
     });
-  }
-
-  void _updateBottomNavBarColor() {
-    _bottomNavBarColor = _selectedIndex == 0 ? Colors.blue[400] : Styles.greyColor;
   }
 
   @override
@@ -43,8 +51,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               : animationController.reverse();
         },
       ),
-      const LicensePage(),
-      const SprinklerPage(),
+      const WeatherPage(),
+      SprinklerPage(
+        updateBottomNavBarColor: updateBottomNavBarColor,
+      ),
       // const WeatherPage(),
     ];
   }
@@ -57,34 +67,40 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    _updateBottomNavBarColor();
 
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
         children: _pages,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: _bottomNavBarColor,
-        selectedLabelStyle: TextStyle(color: Styles.primaryColor),
-        selectedItemColor: Styles.primaryColor,
-        unselectedItemColor: Colors.grey.withOpacity(0.7),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.insert_chart_rounded),
-            label: 'Analytics',
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(width: 1.0, color: Colors.white),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.cloud_rounded),
-            label: 'Weather',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.water_drop_rounded),
-            label: 'Sprinkler',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: _bottomNavBarColor,
+          selectedLabelStyle: TextStyle(color: Styles.primaryColor),
+          selectedItemColor: _bottomNavSelectedColor,
+          unselectedItemColor: _bottomNavItemColor?.withOpacity(0.7),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.insert_chart_rounded),
+              label: 'Analytics',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.cloud_rounded),
+              label: 'Weather',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.water_drop_rounded),
+              label: 'Sprinkler',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+        ),
       ),
       // SizeTransition(
       //   sizeFactor: animationController,

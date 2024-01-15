@@ -1,10 +1,13 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
+
+import '../../screens/analytics_page.dart';
 
 class Humidity extends StatefulWidget {
   final Function(bool) isHideBottomNavBar;
-  final List<double> humidityData;
+  final List<SensorData> humidityData;
   final double currentHumidity;
   final double averageHumidity;
   final double highestHumidity;
@@ -50,37 +53,31 @@ class _HumidityState extends State<Humidity> with AutomaticKeepAliveClientMixin<
   Widget build(BuildContext context) {
     super.build(context);
 
+    // from humidityData, show me records that have highest element.time.day in list
+    var sensorData = widget.humidityData.where((element) => element.time.day == widget.humidityData.reduce((a, b) => a.time.day > b.time.day ? a : b).time.day).toList();
+    sensorData.sort((a, b) => a.time.compareTo(b.time));
+    print('Recent data: ${sensorData.map((e) => e.time).toList()}');
+
     return NotificationListener<ScrollNotification>(
       onNotification: _handleScrollNotification,
       child: Padding(
         padding: EdgeInsets.all(16.0),
-        child: LineChart(
-          LineChartData(
-            gridData: FlGridData(show: false),
-            titlesData: FlTitlesData(show: false),
-            borderData: FlBorderData(
-              show: true,
-              border: Border.all(color: const Color(0xff37434d), width: 1),
+        child: SfCartesianChart(
+            primaryXAxis: DateTimeAxis(
+              dateFormat: DateFormat.Hms(),
+              intervalType: DateTimeIntervalType.hours,
+              interval: 1,
             ),
-            minX: 0,
-            maxX: widget.humidityData.length.toDouble() - 1,
-            minY: widget.lowestHumidity - 5,
-            maxY: widget.highestHumidity + 5,
-            lineBarsData: [
-              LineChartBarData(
-                spots: widget.humidityData
-                    .asMap()
-                    .entries
-                    .map((entry) => FlSpot(entry.key.toDouble(), entry.value))
-                    .toList(),
-                isCurved: true,
-                color: Colors.blue, // Change to blue for humidity
-                dotData: FlDotData(show: false),
-                belowBarData: BarAreaData(show: false),
-              ),
-            ],
-          ),
-        ),
+            series: <CartesianSeries>[
+              // Renders line chart
+              LineSeries<SensorData, DateTime>(
+                  dataSource: sensorData,
+                  xValueMapper: (SensorData sensor, _) => sensor.time,
+                  yValueMapper: (SensorData sensor, _) => sensor.value,
+                  dataLabelSettings: DataLabelSettings(isVisible: true),
+
+                  enableTooltip: true)
+            ]),
       ),
     );
   }

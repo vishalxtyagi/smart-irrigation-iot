@@ -22,7 +22,7 @@ class ButtomListView extends StatelessWidget {
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Colors.black,
             ),
           ),
           const SizedBox(height: 10),
@@ -40,7 +40,7 @@ class ButtomListView extends StatelessWidget {
                     color: const Color(0xff00A1FF).withOpacity(0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: forecastCard(snapshot, index),
+                  child: forecastCard(snapshot.data!, index),
                 );
               },
               separatorBuilder: (context, index) => const SizedBox(width: 8),
@@ -53,11 +53,16 @@ class ButtomListView extends StatelessWidget {
   }
 }
 
-Widget forecastCard(AsyncSnapshot<Map<String, dynamic>> snapshot, int index) {
-  var daily = snapshot.data!["daily"];
-  DateTime date = DateTime.parse('${daily.time![index]}');
+Widget forecastCard(Map<String, dynamic> data, int index) {
+  var dailyData = data['daily'];
+  List<dynamic> timeList = dailyData['time'];
+  List<dynamic> weatherCodeList = dailyData['weathercode'];
+  List<dynamic> temperatureMinList = dailyData['temperature_2m_min'];
+
+  DateTime date = DateTime.fromMillisecondsSinceEpoch(timeList[index] * 1000);
   var dayOfWeek = DateFormat('E').format(date);
-  var tempMin = daily.temperature2mMin![index].toStringAsFixed(0);
+  var tempMin = temperatureMinList[index].toStringAsFixed(0);
+
   return Column(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
@@ -65,13 +70,15 @@ Widget forecastCard(AsyncSnapshot<Map<String, dynamic>> snapshot, int index) {
         '$tempMin °C',
         style: const TextStyle(color: Colors.white, fontSize: 20),
       ),
-      Image(
-        image: AssetImage(
-          WeatherUtil.findIcon('${daily.weatherCode![index]}', false),
-        ),
-        width: 55,
-        height: 55,
-      ),
+      // You might need to update the way you retrieve the icon based on the weather code.
+      // Replace `WeatherUtil.findIcon(...)` with appropriate logic for Open Meteo's icons.
+      // Image(
+      //   image: AssetImage(
+      //     WeatherUtil.findIcon('${daily.weatherCode![index]}', false),
+      //   ),
+      //   width: 55,
+      //   height: 55,
+      // ),
       Text(
         dayOfWeek,
         style: const TextStyle(color: Colors.white, fontSize: 20),

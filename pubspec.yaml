@@ -20,11 +20,11 @@ dependencies:
   connectivity_plus: ^5.0.2
   permission_handler: ^11.1.0
   esptouch_smartconfig: ^1.1.0
-  fl_chart: ^0.66.0
   flutter_svg: ^2.0.9
   app_settings: ^5.1.1
   url_launcher: ^6.2.2
   flutter_neumorphic_plus: ^3.3.0
+  syncfusion_flutter_charts: ^24.1.45
   syncfusion_flutter_gauges: ^24.1.43
   shared_preferences: ^2.2.2
   geolocator: ^10.1.0

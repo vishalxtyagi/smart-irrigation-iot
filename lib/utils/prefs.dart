@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AppPrefs {
   static const String _keyDevices = 'iotDevices';
   static const String _keyNotifications = 'enableNotifications';
+  static const String _keySelectedUnit = 'selectedUnit';
 
   static final AppPrefs _instance = AppPrefs._internal();
 
@@ -28,6 +29,12 @@ class AppPrefs {
     return devices.map((e) => Map<String, dynamic>.from(json.decode(e))).toList();
   }
 
+  Future<int> getDeviceCount() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> devices = prefs.getStringList(_keyDevices) ?? [];
+    return devices.length;
+  }
+
   Future<void> clearDevices() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyDevices);
@@ -48,5 +55,15 @@ class AppPrefs {
   Future<bool> areNotificationsEnabled() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_keyNotifications) ?? false;
+  }
+
+  Future<void> saveSelectedUnit(String unit) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keySelectedUnit, unit);
+  }
+
+  Future<String?> getSelectedUnit() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keySelectedUnit);
   }
 }

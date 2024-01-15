@@ -8,17 +8,18 @@ class CurrentWeather extends StatelessWidget {
   final AsyncSnapshot<Map<String, dynamic>> snapshot;
 
   const CurrentWeather({
-    super.key,
+    Key? key,
     required this.snapshot,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     var data = snapshot.data!;
-    var current = data["current"];
-    var temp = 0;
-    // current.temperature2m!.toStringAsFixed(0);
-    var formattedDate = DateTime.parse('${current["time"]}');
+    print(data);
+    var current = data["current_weather"];
+    print(current);
+    var temp = current["temperature"].toStringAsFixed(0);
+    var formattedDate = DateTime.fromMillisecondsSinceEpoch(current["time"] * 1000);
 
     return GlowContainer(
       height: MediaQuery.of(context).size.height - 230,
@@ -34,8 +35,7 @@ class CurrentWeather extends StatelessWidget {
       child: Column(
         children: [
           GlowText(
-            // data.city!,
-            'city',
+            data["city_name"] ?? 'Samalkha',
             style: const TextStyle(
               height: 0.1,
               fontWeight: FontWeight.bold,
@@ -46,9 +46,10 @@ class CurrentWeather extends StatelessWidget {
             height: 430,
             child: Stack(
               children: [
+                // Replace WeatherUtil.findIcon with appropriate logic based on new weather codes
                 Image(
                   image: AssetImage(
-                    WeatherUtil.findIcon('${current.weatherCode}', true),
+                    WeatherUtil.findIcon('${current["weathercode"]}', true),
                   ),
                   fit: BoxFit.fill,
                 ),
@@ -62,13 +63,13 @@ class CurrentWeather extends StatelessWidget {
                         GlowText(
                           '$temp °C',
                           style: const TextStyle(
-                            height: 0.1,
                             fontSize: 80,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Text(
-                          '${WeatherUtil.getWeatherDescription(current.weatherCode!)}',
+                          // Update WeatherUtil.getWeatherDescription based on new weather codes
+                          '${WeatherUtil.getWeatherDescription(current["weathercode"])}',
                           style: const TextStyle(fontSize: 25),
                         ),
                         Text(
@@ -84,7 +85,7 @@ class CurrentWeather extends StatelessWidget {
           ),
           const Divider(color: Colors.white),
           const SizedBox(height: 10),
-          ExtraDetails(snapshot: snapshot),
+          ExtraDetails(snapshot: snapshot), // Ensure ExtraDetails widget handles new data structure
         ],
       ),
     );

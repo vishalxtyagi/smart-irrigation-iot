@@ -31,7 +31,7 @@ class RajeshIot extends StatelessWidget {
       title: 'Smart Irrigation',
       debugShowCheckedModeBanner: false,
       materialTheme: AppTheme.materialTheme,
-      home: const HomePage()
+      home: const GetStarted()
     );
   }
 }
