@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:irrigation/screens/analytics_page.dart';
+import 'package:irrigation/screens/prediction_page.dart';
 import 'package:irrigation/screens/settings_page.dart';
 import 'package:irrigation/screens/sprinkler_page.dart';
 import 'package:irrigation/screens/weather_page.dart';
@@ -56,6 +57,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               : animationController.reverse();
         },
       ),
+      const PredictionPage(),
       const WeatherPage(),
       SprinklerPage(
         updateBottomNavBarColor: updateBottomNavBarColor,
@@ -93,6 +95,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             BottomNavigationBarItem(
               icon: Icon(Icons.insert_chart_rounded),
               label: 'Analytics',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.stars_rounded),
+              label: 'Prediction',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.cloud_rounded),

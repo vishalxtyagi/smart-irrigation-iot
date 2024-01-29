@@ -17,7 +17,6 @@ class AnalyticsPage extends StatefulWidget {
 }
 
 class _AnalyticsPageState extends State<AnalyticsPage> {
-  String selectedDevice = '';
   DatabaseReference _databaseReference = FirebaseDatabase.instance.ref('FirebaseIOT');
   Map<dynamic, dynamic>? firebaseData;
   String? selectedUnit;
@@ -223,6 +222,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       child: Column(
         children: [
           GridView.count(
+            primary: true,
             shrinkWrap: true,
             crossAxisCount: 2,
             children: [
