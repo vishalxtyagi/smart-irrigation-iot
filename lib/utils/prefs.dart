@@ -47,6 +47,13 @@ class AppPrefs {
     await prefs.setStringList(_keyDevices, devices);
   }
 
+  Future<void> addDevice(Map<String, dynamic> device) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> devices = prefs.getStringList(_keyDevices) ?? [];
+    devices.add(json.encode(device));
+    await prefs.setStringList(_keyDevices, devices);
+  }
+
   Future<void> setNotificationsEnabled(bool enabled) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyNotifications, enabled);

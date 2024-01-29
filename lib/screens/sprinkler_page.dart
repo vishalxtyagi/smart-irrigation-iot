@@ -24,23 +24,28 @@ class _SprinklerPageState extends State<SprinklerPage> {
   late DatabaseReference _databaseReference;
   bool sprinklerState = false;
   bool isBlocked = false;
-  String selectedUnit = "Unit 1";
+  String? selectedUnit;
   bool isCardView = false;
+  List<String> units = [];
 
   @override
   void initState() {
     super.initState();
     initFirebase();
-    loadSelectedUnit();
+    loadAllUnits();
   }
 
   Future<void> initFirebase() async {
     await Firebase.initializeApp();
-    _databaseReference = FirebaseDatabase.instance.ref("FirebaseIOT/68C63AD53478")
-        .child('sprinklers');
+    _databaseReference = FirebaseDatabase.instance.ref("FirebaseIOT");
     // Set up a listener for changes in the sprinkler state
-    _databaseReference.onValue.listen((event) {
+  }
+
+  Future<void> listenDb(String unit) async {
+    print('Sprinkler state: $unit');
+    _databaseReference.child(unit).child('sprinklers').onValue.listen((event) {
       final data = event.snapshot.value;
+      print('Sprinkler state: $data');
       setState(() {
         sprinklerState = (data == 'ON');
         isBlocked = (data == 'BLOCKED');
@@ -49,31 +54,29 @@ class _SprinklerPageState extends State<SprinklerPage> {
     });
   }
 
-  Future<void> loadSelectedUnit() async {
+  Future<void> loadAllUnits() async {
     String? savedUnit = await AppPrefs().getSelectedUnit();
-    if (savedUnit != null) {
-      setState(() {
-        selectedUnit = savedUnit;
-      });
-    }
+    final devices = await AppPrefs().getDevices();
+    setState(() {
+      units = List.generate(devices.length, (index) => devices[index]['id']);
+      selectedUnit = savedUnit ?? units[0];
+      listenDb(selectedUnit!);
+    });
   }
 
   Future<List<DropdownMenuItem<String>>> _buildDropdownItems() async {
-    final deviceCount = await AppPrefs().getDeviceCount();
-    final List<String> units = List.generate(deviceCount, (index) => 'Unit ${index + 1}');
-
-    return units.map((value) {
+    // show units as Unit 1, Unit 2, etc.
+    return List.generate(units.length, (index) {
       return DropdownMenuItem<String>(
-        value: value,
-        child: Text(value, style: const TextStyle(color: Colors.black)),
+        value: units[index],
+        child: Text('Unit ${index + 1}'),
       );
-    }).toList();
+    });
   }
 
-
-  void toggleSprinklerState() {
+  void toggleSprinklerState(String unit) {
     // Toggle the sprinkler state in the database
-    _databaseReference.set(sprinklerState ? 'OFF' : 'ON');
+    _databaseReference.child(unit).child('sprinklers').set(sprinklerState ? 'OFF' : 'ON');
   }
 
   @override
@@ -101,6 +104,7 @@ class _SprinklerPageState extends State<SprinklerPage> {
                       setState(() {
                         selectedUnit = value!;
                         AppPrefs().saveSelectedUnit(value);
+                        listenDb(selectedUnit!);
                       });
                     },
                   ),
@@ -251,7 +255,7 @@ class _SprinklerPageState extends State<SprinklerPage> {
                   return;
                 }
 
-                toggleSprinklerState();
+                toggleSprinklerState(selectedUnit!);
               },
               style: Theme.of(context).textButtonTheme.style!.copyWith(
                 backgroundColor: MaterialStateProperty.all<Color>(

@@ -1,8 +1,11 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:irrigation/widgets/analytics/humidity.dart';
-import 'package:irrigation/widgets/analytics/soil_moisture.dart';
-import 'package:irrigation/widgets/analytics/temperature.dart';
+import 'package:gap/gap.dart';
+import 'package:intl/intl.dart';
+import 'package:irrigation/utils/prefs.dart';
+import 'package:irrigation/utils/stat_card.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 
 class AnalyticsPage extends StatefulWidget {
   final Function(bool) isHideBottomNavBar;
@@ -14,27 +17,41 @@ class AnalyticsPage extends StatefulWidget {
 }
 
 class _AnalyticsPageState extends State<AnalyticsPage> {
-  final DatabaseReference _databaseReference = FirebaseDatabase.instance.ref("FirebaseIOT/68C63AD53478");
+  String selectedDevice = '';
+  DatabaseReference _databaseReference = FirebaseDatabase.instance.ref('FirebaseIOT');
   Map<dynamic, dynamic>? firebaseData;
+  String? selectedUnit;
 
-  Map<dynamic, dynamic> _data = {
-      'historicalData': {
-        'temperature': <SensorData>[],
-        'humidity': <SensorData>[],
-        'soilMoisture': <SensorData>[],
-      },
-      'current': 0.0,
-      'average': 0.0,
-      'highest': 0.0,
-      'lowest': 0.0,
-    };
+  Map<String, dynamic> _data = {
+    'historicalData': {
+      'temperature': <SensorData>[],
+      'humidity': <SensorData>[],
+      'soilMoisture': <SensorData>[],
+    },
+    'current': 0.0,
+    'average': 0.0,
+    'highest': 0.0,
+    'lowest': 0.0,
+  };
 
   @override
   void initState() {
     super.initState();
+    initFirebase();
+    loadAllUnits();
     fetchData();
-    _databaseReference.keepSynced(true);
-    _databaseReference.onValue.listen((DatabaseEvent event) {
+  }
+  List<String> units = [];
+
+  Future<void> initFirebase() async {
+    _databaseReference = FirebaseDatabase.instance.ref("FirebaseIOT");
+    // Set up a listener for changes in the sprinkler state
+  }
+
+  Future<void> listenDb(String unit) async {
+    _clearData();
+    _databaseReference.child(unit).keepSynced(true);
+    _databaseReference.child(unit).onValue.listen((DatabaseEvent event) {
       final dynamic snapshotValue = event.snapshot.value;
       if (snapshotValue != null && snapshotValue is Map<dynamic, dynamic>) {
         firebaseData = snapshotValue; // Assign Firebase data to firebaseData
@@ -44,8 +61,26 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       } else {
         print('Invalid snapshot value or null data received');
       }
+    });
+  }
 
-      print(firebaseData);
+  Future<void> loadAllUnits() async {
+    String? savedUnit = await AppPrefs().getSelectedUnit();
+    final devices = await AppPrefs().getDevices();
+    setState(() {
+      units = List.generate(devices.length, (index) => devices[index]['id']);
+      selectedUnit = savedUnit ?? units[0];
+      listenDb(selectedUnit!);
+    });
+  }
+
+  Future<List<DropdownMenuItem<String>>> _buildDropdownItems() async {
+    // show units as Unit 1, Unit 2, etc.
+    return List.generate(units.length, (index) {
+      return DropdownMenuItem<String>(
+        value: units[index],
+        child: Text('Unit ${index + 1}'),
+      );
     });
   }
 
@@ -73,7 +108,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             _updateData('temperature', dateTime, temperature);
             _updateData('humidity', dateTime, humidity);
             _updateData('soilMoisture', dateTime, soilMoisture);
-
           });
           print('hdshsf ${historyData.values.toList()}');
         }
@@ -134,45 +168,97 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   @override
   Widget build(BuildContext context) {
     print(_data);
-    final Map<String, Widget> tabs = <String, Widget>{
-      'Temperature': Temperature(
-        temperatureData: _data['historicalData']['temperature'],
-        currentTemperature: _data['current'],
-        averageTemperature: _data['average'],
-        highestTemperature: _data['highest'],
-        lowestTemperature: _data['lowest'],
-      ),
-      'Soil Moisture': SoilMoisture(
-        moistureData: _data['historicalData']['soilMoisture'],
-        currentMoisture: _data['current'],
-        averageMoisture: _data['average'],
-        highestMoisture: _data['highest'],
-        lowestMoisture: _data['lowest'],
-      ),
-      'Humidity': Humidity(
-        humidityData: _data['historicalData']['humidity'],
-        currentHumidity: _data['current'],
-        averageHumidity: _data['average'],
-        highestHumidity: _data['highest'],
-        lowestHumidity: _data['lowest'],
-        isHideBottomNavBar: (value) {
-          widget.isHideBottomNavBar(value);
-        },
-      ),
-    };
-
     return DefaultTabController(
-      length: tabs.length,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
-          bottom: TabBar(
-            tabs: tabs.keys.map((String name) => Tab(text: name)).toList(),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Temperature'),
+              Tab(text: 'Soil Moisture'),
+              Tab(text: 'Humidity'),
+            ],
           ),
           title: const Text('Analytics'),
+          actions: [
+            FutureBuilder(future: _buildDropdownItems(), builder: (context, snapshot) {
+              if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                print(snapshot.data);
+                return DropdownButtonHideUnderline(
+                  child: DropdownButton(
+                    value: selectedUnit,
+                    items: snapshot.data,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedUnit = value!;
+                        AppPrefs().saveSelectedUnit(value);
+                        listenDb(selectedUnit!);
+                      });
+                    },
+                  ),
+                );
+              } else {
+                return const SizedBox.shrink();
+              }
+            }),
+          ],
         ),
         body: TabBarView(
-          children: tabs.values.toList(),
+          children: [
+            _buildChartTab('Temperature', _data['historicalData']['temperature'], Icons.thermostat),
+            _buildChartTab('Soil Moisture', _data['historicalData']['soilMoisture'], Icons.water_drop),
+            _buildChartTab('Humidity', _data['historicalData']['humidity'], Icons.cloud_rounded),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildChartTab(String title, List<SensorData> data, icon) {
+    var myData = data.where((element) => element.time.day == data.reduce((a, b) => a.time.day > b.time.day ? a : b).time.day).toList();
+    myData.sort((a, b) => a.time.compareTo(b.time));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        children: [
+          GridView.count(
+            shrinkWrap: true,
+            crossAxisCount: 2,
+            children: [
+              StatCard(title: 'Current', value: _data['current'].toStringAsFixed(2), icon: icon),
+              StatCard(title: 'Average', value: _data['average'].toStringAsFixed(2), icon: icon),
+              StatCard(title: 'Highest', value: _data['highest'].toStringAsFixed(2), icon: icon),
+              StatCard(title: 'Lowest', value: _data['lowest'].toStringAsFixed(2), icon: icon),
+            ],
+          ),
+          const Gap(16.0),
+          SfCartesianChart(
+            primaryXAxis: DateTimeAxis(
+              dateFormat: DateFormat.Hms(),
+              intervalType: DateTimeIntervalType.hours,
+              majorGridLines: const MajorGridLines(width: 0),
+            ),
+            primaryYAxis: const NumericAxis(
+              axisLine: AxisLine(width: 0),
+              majorTickLines: MajorTickLines(size: 0),
+              minorTickLines: MinorTickLines(size: 0),
+              majorGridLines: MajorGridLines(width: 0),
+            ),
+            series: <CartesianSeries<SensorData, DateTime>>[
+              LineSeries<SensorData, DateTime>(
+                dataSource: myData,
+                xValueMapper: (SensorData sensorData, _) => sensorData.time,
+                yValueMapper: (SensorData sensorData, _) => sensorData.value,
+                dataLabelSettings: const DataLabelSettings(isVisible: true),
+                enableTooltip: true,
+                markerSettings: const MarkerSettings(isVisible: true),
+              ),
+            ],
+            tooltipBehavior: TooltipBehavior(enable: true),
+          ),
+          Gap(24)
+        ],
       ),
     );
   }

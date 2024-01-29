@@ -16,7 +16,12 @@ import 'package:pulsator/pulsator.dart';
 
 
 class NetworkDetection extends StatefulWidget {
-  const NetworkDetection({super.key});
+  const NetworkDetection({
+    this.isAddDevice = false,
+    super.key
+  });
+
+  final bool isAddDevice;
 
   @override
   State<NetworkDetection> createState() => _NetworkDetectionState();
@@ -192,6 +197,7 @@ class _NetworkDetectionState extends State<NetworkDetection> {
                     MaterialPageRoute(
                       builder: (context) => NetworkSelection(
                         devices: [deviceIdController.text],
+                        isAddDevice: widget.isAddDevice,
                       ),
                     ),
                   );
@@ -276,11 +282,13 @@ class _NetworkDetectionState extends State<NetworkDetection> {
             ),
             TextButton(
               onPressed: () async {
+                print(widget.isAddDevice);
                 _devices.isNotEmpty ? Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => NetworkSelection(
                       devices: _devices,
+                      isAddDevice: widget.isAddDevice,
                     ),
                   ),
                 ) :

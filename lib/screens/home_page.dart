@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:irrigation/screens/analytics_page.dart';
+import 'package:irrigation/screens/settings_page.dart';
 import 'package:irrigation/screens/sprinkler_page.dart';
 import 'package:irrigation/screens/weather_page.dart';
 import 'package:irrigation/utils/colors.dart';
@@ -24,9 +25,13 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   void updateBottomNavBarColor(bool isSprinklerOn) {
     setState(() {
-      _bottomNavBarColor = isSprinklerOn ? Colors.blue[400] : Styles.whiteColor;
+      _bottomNavBarColor = isSprinklerOn ? Colors.blue[400] : Colors.white;
       _bottomNavItemColor = isSprinklerOn ? Colors.white : Colors.black;
-      _bottomNavSelectedColor = isSprinklerOn ? Colors.white :  AppColors.primaryColor;
+      _bottomNavSelectedColor = isSprinklerOn ? Colors.white : AppColors.primaryColor;
+
+      print('Bottom nav bar color: $_bottomNavBarColor');
+      print('Bottom nav item color: $_bottomNavItemColor');
+      print('Bottom nav selected color: $_bottomNavSelectedColor');
     });
   }
 
@@ -55,6 +60,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       SprinklerPage(
         updateBottomNavBarColor: updateBottomNavBarColor,
       ),
+      const SettingsPage(),
       // const WeatherPage(),
     ];
   }
@@ -67,7 +73,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-
+    print('Home page build: $_bottomNavBarColor');
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
@@ -97,6 +103,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               icon: Icon(Icons.water_drop_rounded),
               label: 'Sprinkler',
             ),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.settings_rounded),
+                label: 'Settings'
+            )
           ],
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,

@@ -32,6 +32,7 @@ dependencies:
   open_meteo: ^0.0.10
   flutter_glow: ^0.3.0
   sklite: ^1.0.0
+  babstrap_settings_screen: ^0.1.6
 
 dev_dependencies:
   flutter_test:
@@ -61,4 +62,4 @@ flutter:
     - assets/images/
     - assets/icons/
     - google_fonts/
-    - assets/rfc.json
+    - assets/svm.json
