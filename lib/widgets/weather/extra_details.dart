@@ -13,9 +13,11 @@ class ExtraDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     var current = snapshot.data!["current_weather"];
 
-    var windSpeed = current['wind_speed_10m'];
-    var humidity = current['relative_humidity_2m'];
-    var rain = current['cloud_cover'];
+    print('current: $current');
+
+    var windSpeed = current['windspeed'];
+    var isDay = current['is_day'];
+    var windDirection = current['winddirection'];
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -37,30 +39,30 @@ class ExtraDetails extends StatelessWidget {
         ),
         Column(
           children: [
-            const Icon(CupertinoIcons.drop, color: Colors.white),
+            const Icon(CupertinoIcons.location_north_fill, color: Colors.white),
             const SizedBox(height: 10),
             Text(
-              "$humidity %",
+              "$windDirection",
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 10),
             const Text(
-              "Humidity",
+              "Wind Direction",
               style: TextStyle(color: Colors.black54, fontSize: 16),
             )
           ],
         ),
         Column(
           children: [
-            const Icon(CupertinoIcons.cloud_rain, color: Colors.white),
+            const Icon(CupertinoIcons.sun_max_fill, color: Colors.white),
             const SizedBox(height: 10),
             Text(
-              "$rain %",
+              isDay == 1 ? "Day" : "Night",
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 10),
             const Text(
-              "Rain",
+              "Day/Night",
               style: TextStyle(color: Colors.black54, fontSize: 16),
             )
           ],

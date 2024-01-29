@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:sklite/SVM/SVM.dart';
+import 'package:sklite/utils/io.dart';
 import 'package:irrigation/utils/colors.dart';
 import 'package:irrigation/utils/colors.dart';
 import 'package:irrigation/utils/prefs.dart';
@@ -27,12 +31,18 @@ class _SprinklerPageState extends State<SprinklerPage> {
   String? selectedUnit;
   bool isCardView = false;
   List<String> units = [];
+  SVC? svc;
 
   @override
   void initState() {
     super.initState();
     initFirebase();
     loadAllUnits();
+
+    loadModel("assets/svm.json").then((x) {
+      print(x);
+      svc = SVC.fromMap(json.decode(x));
+    });
   }
 
   Future<void> initFirebase() async {
@@ -82,6 +92,7 @@ class _SprinklerPageState extends State<SprinklerPage> {
   @override
   Widget build(BuildContext context) {
     SizeConfig.init(context);
+    print(svc?.predict([19.0, 230.0, 20.0, 16.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0]));
     return Scaffold(
       backgroundColor: sprinklerState ? Colors.blue[400] : Colors.white,
       appBar: AppBar(

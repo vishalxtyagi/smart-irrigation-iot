@@ -73,4 +73,9 @@ class AppPrefs {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keySelectedUnit);
   }
+
+  Future<void> clearSelectedUnit() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keySelectedUnit);
+  }
 }

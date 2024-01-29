@@ -39,84 +39,65 @@ class WeatherUtil {
     }
   }
 
-  static getWeatherDescription(int weatherCode) {
+
+  static String getWeatherDescription(int weatherCode) {
     switch (weatherCode) {
-      case 200:
-        return "Thunderstorm with light rain";
-      case 201:
-        return "Thunderstorm with rain";
-      case 202:
-        return "Thunderstorm with heavy rain";
-      case 230:
-        return "Thunderstorm with light drizzle";
-      case 231:
-        return "Thunderstorm with drizzle";
-      case 232:
-        return "Thunderstorm with heavy drizzle";
-      case 233:
-        return "Thunderstorm with Hail";
-      case 300:
-        return "Light Drizzle";
-      case 301:
-        return "Drizzle";
-      case 302:
-        return "Heavy Drizzle";
-      case 500:
-        return "Light Rain";
-      case 501:
-        return "Moderate Rain";
-      case 502:
-        return "Heavy Rain";
-      case 511:
-        return "Freezing rain";
-      case 520:
-        return "Light shower rain";
-      case 521:
-        return "Shower rain";
-      case 522:
-        return "Heavy shower rain";
-      case 600:
-        return "Light snow";
-      case 601:
-        return "Snow";
-      case 602:
-        return "Heavy Snow";
-      case 610:
-        return "Mix snow/rain";
-      case 611:
-        return "Sleet";
-      case 612:
-        return "Heavy sleet";
-      case 621:
-        return "Snow shower";
-      case 622:
-        return "Heavy snow shower";
-      case 623:
-        return "Flurries";
-      case 700:
-        return "Mist";
-      case 711:
-        return "Smoke";
-      case 721:
-        return "Haze";
-      case 731:
-        return "Sand/dust";
-      case 741:
-        return "Fog";
-      case 751:
-        return "Freezing Fog";
-      case 800:
+      case 0:
         return "Clear sky";
-      case 801:
-        return "Few clouds";
-      case 802:
-        return "Scattered clouds";
-      case 803:
-        return "Broken clouds";
-      case 804:
-        return "Overcast clouds";
-      case 900:
-        return "Unknown Precipitation";
+      case 1:
+        return "Mainly clear sky";
+      case 2:
+        return "Partly cloudy";
+      case 3:
+        return "Overcast sky";
+      case 45:
+        return "Fog";
+      case 48:
+        return "Depositing rime fog";
+      case 51:
+        return "Drizzle: Light intensity";
+      case 53:
+        return "Drizzle: Moderate intensity";
+      case 55:
+        return "Drizzle: Dense intensity";
+      case 56:
+        return "Freezing Drizzle: Light intensity";
+      case 57:
+        return "Freezing Drizzle: Dense intensity";
+      case 61:
+        return "Rain: Slight drizzle";
+      case 63:
+        return "Rain: Moderate drizzle";
+      case 65:
+        return "Rain: Heavy drizzle";
+      case 66:
+        return "Freezing Rain: Light intensity";
+      case 67:
+        return "Freezing Rain: Heavy intensity";
+      case 71:
+        return "Snow fall: Slight";
+      case 73:
+        return "Snow fall: Moderate";
+      case 75:
+        return "Snow fall: Heavy";
+      case 77:
+        return "Snow grains";
+      case 80:
+        return "Rain showers: Slight";
+      case 81:
+        return "Rain showers: Moderate";
+      case 82:
+        return "Rain showers: Heavy";
+      case 85:
+        return "Snow showers: Slight";
+      case 86:
+        return "Snow showers: Heavy";
+      case 95:
+        return "Thunderstorm: Slight";
+      case 96:
+        return "Thunderstorm: Moderate";
+      case 99:
+        return "Thunderstorm: Heavy hail";
       default:
         return "Unknown Precipitation";
     }

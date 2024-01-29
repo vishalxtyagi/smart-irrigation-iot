@@ -56,12 +56,14 @@ class ButtomListView extends StatelessWidget {
 Widget forecastCard(Map<String, dynamic> data, int index) {
   var dailyData = data['daily'];
   List<dynamic> timeList = dailyData['time'];
-  List<dynamic> weatherCodeList = dailyData['weathercode'];
+  List<dynamic> weatherCode = dailyData['weathercode'];
   List<dynamic> temperatureMinList = dailyData['temperature_2m_min'];
+  print('weatherCode: $weatherCode');
 
   DateTime date = DateTime.fromMillisecondsSinceEpoch(timeList[index] * 1000);
   var dayOfWeek = DateFormat('E').format(date);
   var tempMin = temperatureMinList[index].toStringAsFixed(0);
+  var weatherCodeIndex = weatherCode[index];
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.center,
@@ -72,13 +74,11 @@ Widget forecastCard(Map<String, dynamic> data, int index) {
       ),
       // You might need to update the way you retrieve the icon based on the weather code.
       // Replace `WeatherUtil.findIcon(...)` with appropriate logic for Open Meteo's icons.
-      // Image(
-      //   image: AssetImage(
-      //     WeatherUtil.findIcon('${daily.weatherCode![index]}', false),
-      //   ),
-      //   width: 55,
-      //   height: 55,
-      // ),
+      Image(
+        image: AssetImage(
+          WeatherUtil.findIcon('${weatherCodeIndex.toString()}', true),
+        ),
+      ),
       Text(
         dayOfWeek,
         style: const TextStyle(color: Colors.white, fontSize: 20),

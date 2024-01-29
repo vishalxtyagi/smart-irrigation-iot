@@ -86,11 +86,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
         ),
         child: BottomNavigationBar(
-          backgroundColor: _bottomNavBarColor,
           selectedLabelStyle: TextStyle(color: Styles.primaryColor),
           selectedItemColor: _bottomNavSelectedColor,
           unselectedItemColor: _bottomNavItemColor?.withOpacity(0.7),
-          items: const [
+          items: [
             BottomNavigationBarItem(
               icon: Icon(Icons.insert_chart_rounded),
               label: 'Analytics',
@@ -102,6 +101,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             BottomNavigationBarItem(
               icon: Icon(Icons.water_drop_rounded),
               label: 'Sprinkler',
+              backgroundColor: _bottomNavBarColor,
             ),
             BottomNavigationBarItem(
                 icon: Icon(Icons.settings_rounded),

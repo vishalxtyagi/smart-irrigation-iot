@@ -129,6 +129,7 @@ class NetworkSelectionState extends State<NetworkSelection> {
                   }
 
                   await AppPrefs().clearDevices();
+                  await AppPrefs().clearSelectedUnit();
 
                   if (widget.isManageDevices) {
                     if (devices.isEmpty) {
