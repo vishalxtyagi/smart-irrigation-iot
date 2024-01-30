@@ -16,10 +16,10 @@ class CurrentWeather extends StatelessWidget {
   Widget build(BuildContext context) {
     var data = snapshot.data!;
     print(data);
-    var current = data["current_weather"];
+    var current = data["current"];
     print(current);
-    var temp = current["temperature"].toStringAsFixed(0);
-    var formattedDate = DateTime.fromMillisecondsSinceEpoch(current["time"] * 1000);
+    var temp = current["temperature_2m"].toStringAsFixed(0);
+    var formattedDate = DateTime.parse(current["time"]).toLocal();
 
     return GlowContainer(
       height: MediaQuery.of(context).size.height - 230,
@@ -35,22 +35,25 @@ class CurrentWeather extends StatelessWidget {
       child: Column(
         children: [
           GlowText(
-            data["city_name"] ?? 'Samalkha',
+            data["address"] ?? 'N/A',
             style: const TextStyle(
-              height: 0.1,
-              fontWeight: FontWeight.bold,
               fontSize: 25,
+              fontWeight: FontWeight.bold,
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
+            textAlign: TextAlign.center,
           ),
           SizedBox(
-            height: 430,
+            height: 370,
             child: Stack(
               children: [
                 // Replace WeatherUtil.findIcon with appropriate logic based on new weather codes
                 Image(
                   image: AssetImage(
-                    WeatherUtil.findIcon('${current["weathercode"]}', true),
+                    WeatherUtil.findIcon(current["weather_code"], true),
                   ),
+                  height: 256,
                   fit: BoxFit.fill,
                 ),
                 Positioned(
@@ -69,7 +72,7 @@ class CurrentWeather extends StatelessWidget {
                         ),
                         Text(
                           // Update WeatherUtil.getWeatherDescription based on new weather codes
-                          '${WeatherUtil.getWeatherDescription(current["weathercode"])}',
+                          WeatherUtil.getWeatherDescription(current["weather_code"]),
                           style: const TextStyle(fontSize: 25),
                         ),
                         Text(

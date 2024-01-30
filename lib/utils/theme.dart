@@ -92,6 +92,18 @@ class AppTheme {
           borderRadius: BorderRadius.all(Radius.circular(_borderRadius)),
         ),
       ),
+      datePickerTheme: DatePickerThemeData(
+        cancelButtonStyle: ButtonStyle(
+          minimumSize: MaterialStateProperty.all<Size>(
+            const Size(0,0)
+          ),
+        ),
+        confirmButtonStyle: ButtonStyle(
+          minimumSize: MaterialStateProperty.all<Size>(
+            const Size(0,0)
+          ),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         border: AppTheme.border,
         enabledBorder: AppTheme.border,

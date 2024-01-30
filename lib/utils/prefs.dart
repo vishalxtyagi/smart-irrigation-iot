@@ -29,6 +29,12 @@ class AppPrefs {
     return devices.map((e) => Map<String, dynamic>.from(json.decode(e))).toList();
   }
 
+  Future<Map<String, dynamic>> getDevice(String id) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    List<String> devices = prefs.getStringList(_keyDevices) ?? [];
+    return devices.map((e) => Map<String, dynamic>.from(json.decode(e))).firstWhere((element) => element['id'] == id);
+  }
+
   Future<int> getDeviceCount() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String> devices = prefs.getStringList(_keyDevices) ?? [];
@@ -77,25 +83,5 @@ class AppPrefs {
   Future<void> clearSelectedUnit() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keySelectedUnit);
-  }
-
-  Future<void> saveStartDay(unit, day) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('startDay_$unit', day);
-  }
-
-  Future<DateTime> getStartDay(unit) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return DateTime.parse(prefs.getString('startDay_$unit') ?? DateTime.now().toString());
-  }
-
-  Future<void> saveCrop(unit, int crop) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('crop_$unit', crop);
-  }
-
-  Future<int> getCrop(unit) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('crop_$unit') ?? 1;
   }
 }

@@ -11,58 +11,59 @@ class ExtraDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var current = snapshot.data!["current_weather"];
+    var current = snapshot.data!["current"];
+    var current_units = snapshot.data!["current_units"];
 
     print('current: $current');
 
-    var windSpeed = current['windspeed'];
-    var isDay = current['is_day'];
-    var windDirection = current['winddirection'];
+    var rain = '${current['rain']} ${current_units['rain']}';
+    var relative_humidity_2m = '${current['relative_humidity_2m']} ${current_units['relative_humidity_2m']}';
+    var cloud_cover = '${current['cloud_cover']} ${current_units['cloud_cover']}';
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         Column(
           children: [
-            const Icon(CupertinoIcons.wind, color: Colors.white),
+            const Icon(CupertinoIcons.cloud_rain_fill, color: Colors.white),
             const SizedBox(height: 10),
             Text(
-              "$windSpeed Km/h",
+              rain,
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 10),
             const Text(
-              "Wind",
+              "Rain",
               style: TextStyle(color: Colors.black54, fontSize: 16),
             )
           ],
         ),
         Column(
           children: [
-            const Icon(CupertinoIcons.location_north_fill, color: Colors.white),
+            const Icon(Icons.water, color: Colors.white),
             const SizedBox(height: 10),
             Text(
-              "$windDirection",
+              relative_humidity_2m,
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 10),
             const Text(
-              "Wind Direction",
+              "Humidity",
               style: TextStyle(color: Colors.black54, fontSize: 16),
             )
           ],
         ),
         Column(
           children: [
-            const Icon(CupertinoIcons.sun_max_fill, color: Colors.white),
+            const Icon(CupertinoIcons.cloud_fill, color: Colors.white),
             const SizedBox(height: 10),
             Text(
-              isDay == 1 ? "Day" : "Night",
+              cloud_cover,
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 10),
             const Text(
-              "Day/Night",
+              "Cloud",
               style: TextStyle(color: Colors.black54, fontSize: 16),
             )
           ],

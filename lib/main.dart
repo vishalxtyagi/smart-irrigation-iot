@@ -2,8 +2,10 @@ import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:irrigation/screens/get_started.dart';
 import 'package:irrigation/screens/home_page.dart';
+import 'package:irrigation/utils/shared.dart';
 import 'package:irrigation/utils/theme.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -16,7 +18,10 @@ void main() async {
     [DeviceOrientation.portraitUp],
   ).then(
         (_) => runApp(
-      const RajeshIot(),
+          ChangeNotifierProvider(
+            create: (context) => SharedValue(),
+            child: const RajeshIot(),
+          ),
     ),
   );
 }

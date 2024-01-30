@@ -1,11 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:irrigation/api/open_meteo.dart';
-import 'package:irrigation/models/weather_forecast.dart';
 import 'package:irrigation/screens/search_city.dart';
+import 'package:irrigation/utils/shared.dart';
 import 'package:irrigation/widgets/weather/bottom_list.dart';
 import 'package:irrigation/widgets/weather/current_weather.dart';
 import 'package:irrigation/utils/permission.dart';
+import 'package:provider/provider.dart';
 
 class WeatherPage extends StatefulWidget {
   const WeatherPage({super.key});
@@ -27,6 +28,8 @@ class _WeatherPageState extends State<WeatherPage> {
 
   @override
   Widget build(BuildContext context) {
+    final sharedValue = Provider.of<SharedValue>(context);
+
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -42,7 +45,7 @@ class _WeatherPageState extends State<WeatherPage> {
                 });
               },
               child: const Icon(
-                CupertinoIcons.location_circle,
+                Icons.refresh_rounded,
                 color: Colors.white,
                 size: 30,
               ),
@@ -50,9 +53,10 @@ class _WeatherPageState extends State<WeatherPage> {
             const Row(
               children: [
                 Icon(CupertinoIcons.map_fill, color: Colors.white),
+                const SizedBox(width: 10),
                 Text(
                   'open-meteo.com',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
                 )
               ],
             ),
@@ -80,31 +84,38 @@ class _WeatherPageState extends State<WeatherPage> {
           ],
         ),
       ),
-      body: ListView(
-        children: [
-          FutureBuilder<Map<String, dynamic>>(
-            future: weatherObj,
-            builder: (context, snapshot) {
-              print(snapshot);
-              if (snapshot.hasData) {
-                print(snapshot.data);
-                return Column(
-                  children: [
-                    CurrentWeather(snapshot: snapshot),
-                    ButtomListView(snapshot: snapshot),
-                  ],
-                );
-              } else {
-                return const Center(
-                    child: Text(
-                      'City not found\n Please enter correct city',
-                      style: TextStyle(fontSize: 25, color: Colors.black),
-                      textAlign: TextAlign.center,
-                    ));
-              }
-            },
-          ),
-        ],
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: weatherObj,
+        builder: (context, snapshot) {
+          print(snapshot);
+
+          if (snapshot.hasData) {
+            print(snapshot.data);
+            sharedValue.setRain(snapshot.data!['current']['rain']);
+            return SingleChildScrollView(
+              child: Column(
+                children: [
+                  CurrentWeather(snapshot: snapshot),
+                  ButtomListView(snapshot: snapshot),
+                ],
+              ),
+            );
+          } else if (snapshot.hasError) {
+            return const Center(
+              child: Text(
+                'Error fetching data',
+                style: TextStyle(
+                  fontSize: 25,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
       ),
     );
   }

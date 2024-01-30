@@ -512,6 +512,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.10.0"
+  nested:
+    dependency: transitive
+    description:
+      name: nested
+      sha256: "03bac4c528c64c95c722ec99280375a6f2fc708eec17c7b3f07253b626cd2a20"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   nm:
     dependency: transitive
     description:
@@ -520,14 +528,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.5.0"
-  open_meteo:
-    dependency: "direct main"
-    description:
-      name: open_meteo
-      sha256: f56ec91fcce5d6d13e4f4dc7270a95479965d30a13692ff288b01f33d37aa97f
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.10"
   path:
     dependency: transitive
     description:
@@ -672,6 +672,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.7.3"
+  provider:
+    dependency: "direct main"
+    description:
+      name: provider
+      sha256: "9a96a0a19b594dbc5bf0f1f27d2bc67d5f95957359b461cd9feb44ed6ae75096"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.1"
   pulsator:
     dependency: "direct main"
     description:
@@ -801,10 +809,10 @@ packages:
     dependency: transitive
     description:
       name: syncfusion_flutter_core
-      sha256: "4afb43254d436e1d41a2ee2761908650ce3ad3453f5bebd283dfe3185d5026a2"
+      sha256: ed8527189f874b9d07f78f2f4306739ce003e8baccfdd7453c0098beef16428f
       url: "https://pub.dev"
     source: hosted
-    version: "24.1.45"
+    version: "24.1.47"
   syncfusion_flutter_gauges:
     dependency: "direct main"
     description:

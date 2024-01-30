@@ -29,10 +29,10 @@ dependencies:
   shared_preferences: ^2.2.2
   geolocator: ^10.1.0
   geocoding: ^2.1.1
-  open_meteo: ^0.0.10
   flutter_glow: ^0.3.0
   sklite: ^1.0.0
   babstrap_settings_screen: ^0.1.6
+  provider: ^6.1.1
 
 dev_dependencies:
   flutter_test:

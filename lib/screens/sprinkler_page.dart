@@ -7,8 +7,10 @@ import 'package:flutter_svg/svg.dart';
 import 'package:irrigation/utils/colors.dart';
 import 'package:irrigation/utils/colors.dart';
 import 'package:irrigation/utils/prefs.dart';
+import 'package:irrigation/utils/shared.dart';
 import 'package:irrigation/utils/size_config.dart';
 import 'package:irrigation/utils/styles.dart';
+import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
 
 import 'package:gap/gap.dart';
@@ -29,6 +31,12 @@ class _SprinklerPageState extends State<SprinklerPage> {
   String? selectedUnit;
   bool isCardView = false;
   List<String> units = [];
+
+  double soilMoisture = 0.0;
+  double humidity = 0.0;
+  double temperature = 0.0;
+  double rainfall = 0.0;
+  double prediction = 0.0;
 
   @override
   void initState() {
@@ -83,6 +91,8 @@ class _SprinklerPageState extends State<SprinklerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final sharedValue = Provider.of<SharedValue>(context);
+
     SizeConfig.init(context);
     return Scaffold(
       backgroundColor: sprinklerState ? Colors.blue[400] : Colors.white,
@@ -106,6 +116,7 @@ class _SprinklerPageState extends State<SprinklerPage> {
                       setState(() {
                         selectedUnit = value!;
                         AppPrefs().saveSelectedUnit(value);
+                        
                         listenDb(selectedUnit!);
                       });
                     },
@@ -143,112 +154,13 @@ class _SprinklerPageState extends State<SprinklerPage> {
                     onPressed: () async {
                     },
                   ),
-                ) : SfRadialGauge(
-                  axes: <RadialAxis>[
-                    RadialAxis(
-                        showAxisLine: false,
-                        showLabels: false,
-                        showTicks: false,
-                        startAngle: 180,
-                        endAngle: 360,
-                        maximum: 120,
-                        canScaleToFit: true,
-                        radiusFactor: 0.79,
-                        pointers: const <GaugePointer>[
-                          NeedlePointer(
-                              needleEndWidth: 5,
-                              needleLength: 0.7,
-                              value: 82,
-                              knobStyle: KnobStyle(knobRadius: 0)),
-                        ],
-                        ranges: <GaugeRange>[
-                          GaugeRange(
-                              startValue: 0,
-                              endValue: 20,
-                              startWidth: 0.45,
-                              endWidth: 0.45,
-                              sizeUnit: GaugeSizeUnit.factor,
-                              color: const Color(0xFFDD3800)),
-                          GaugeRange(
-                              startValue: 20.5,
-                              endValue: 40,
-                              startWidth: 0.45,
-                              sizeUnit: GaugeSizeUnit.factor,
-                              endWidth: 0.45,
-                              color: const Color(0xFFFF4100)),
-                          GaugeRange(
-                              startValue: 40.5,
-                              endValue: 60,
-                              startWidth: 0.45,
-                              sizeUnit: GaugeSizeUnit.factor,
-                              endWidth: 0.45,
-                              color: const Color(0xFFFFBA00)),
-                          GaugeRange(
-                              startValue: 60.5,
-                              endValue: 80,
-                              startWidth: 0.45,
-                              sizeUnit: GaugeSizeUnit.factor,
-                              endWidth: 0.45,
-                              color: const Color(0xFFFFDF10)),
-                          GaugeRange(
-                              startValue: 80.5,
-                              endValue: 100,
-                              sizeUnit: GaugeSizeUnit.factor,
-                              startWidth: 0.45,
-                              endWidth: 0.45,
-                              color: const Color(0xFF8BE724)),
-                          GaugeRange(
-                              startValue: 100.5,
-                              endValue: 120,
-                              startWidth: 0.45,
-                              endWidth: 0.45,
-                              sizeUnit: GaugeSizeUnit.factor,
-                              color: const Color(0xFF64BE00)),
-                        ]),
-                    RadialAxis(
-                      showAxisLine: false,
-                      showLabels: false,
-                      showTicks: false,
-                      startAngle: 180,
-                      endAngle: 360,
-                      maximum: 120,
-                      radiusFactor: 0.85,
-                      canScaleToFit: true,
-                      pointers: <GaugePointer>[
-                        MarkerPointer(
-                            markerType: MarkerType.text,
-                            text: 'Poor',
-                            value: 20.5,
-                            textStyle: GaugeTextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: isCardView ? 14 : 18,
-                                fontFamily: 'Times'),
-                            offsetUnit: GaugeSizeUnit.factor,
-                            markerOffset: -0.12),
-                        MarkerPointer(
-                            markerType: MarkerType.text,
-                            text: 'Average',
-                            value: 60.5,
-                            textStyle: GaugeTextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: isCardView ? 14 : 18,
-                                fontFamily: 'Times'),
-                            offsetUnit: GaugeSizeUnit.factor,
-                            markerOffset: -0.12),
-                        MarkerPointer(
-                            markerType: MarkerType.text,
-                            text: 'Good',
-                            value: 100.5,
-                            textStyle: GaugeTextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: isCardView ? 14 : 18,
-                                fontFamily: 'Times'),
-                            offsetUnit: GaugeSizeUnit.factor,
-                            markerOffset: -0.12)
-                      ],
-                    ),
-                  ],
-                )
+                ) : _buildGauge(
+                    sharedValue.soilMoisture,
+                    sharedValue.humidity,
+                    sharedValue.temperature,
+                    sharedValue.rain,
+                    sharedValue.prediction
+                ),
               ),
             ),
             TextButton(
@@ -276,4 +188,139 @@ class _SprinklerPageState extends State<SprinklerPage> {
     );
   }
 
+  Widget _buildGauge(soilMoisture, humidity, temperature, rainfall, prediction) {
+
+    return SfRadialGauge(
+      axes: <RadialAxis>[
+        RadialAxis(
+            showAxisLine: false,
+            showLabels: false,
+            showTicks: false,
+            startAngle: 180,
+            endAngle: 360,
+            maximum: 120,
+            canScaleToFit: true,
+            radiusFactor: 0.79,
+            pointers: <GaugePointer>[
+              NeedlePointer(
+                  needleEndWidth: 5,
+                  needleLength: 0.7,
+                  value: calculateIrrigationValue(
+                      soilMoisture,
+                      humidity,
+                      temperature,
+                      rainfall,
+                      prediction
+                  ),
+                  knobStyle: KnobStyle(knobRadius: 0)),
+            ],
+            ranges: <GaugeRange>[
+              GaugeRange(
+                  startValue: 0,
+                  endValue: 20,
+                  startWidth: 0.45,
+                  endWidth: 0.45,
+                  sizeUnit: GaugeSizeUnit.factor,
+                  color: const Color(0xFFDD3800)),
+              GaugeRange(
+                  startValue: 20.5,
+                  endValue: 40,
+                  startWidth: 0.45,
+                  sizeUnit: GaugeSizeUnit.factor,
+                  endWidth: 0.45,
+                  color: const Color(0xFFFF4100)),
+              GaugeRange(
+                  startValue: 40.5,
+                  endValue: 60,
+                  startWidth: 0.45,
+                  sizeUnit: GaugeSizeUnit.factor,
+                  endWidth: 0.45,
+                  color: const Color(0xFFFFBA00)),
+              GaugeRange(
+                  startValue: 60.5,
+                  endValue: 80,
+                  startWidth: 0.45,
+                  sizeUnit: GaugeSizeUnit.factor,
+                  endWidth: 0.45,
+                  color: const Color(0xFFFFDF10)),
+              GaugeRange(
+                  startValue: 80.5,
+                  endValue: 100,
+                  sizeUnit: GaugeSizeUnit.factor,
+                  startWidth: 0.45,
+                  endWidth: 0.45,
+                  color: const Color(0xFF8BE724)),
+              GaugeRange(
+                  startValue: 100.5,
+                  endValue: 120,
+                  startWidth: 0.45,
+                  endWidth: 0.45,
+                  sizeUnit: GaugeSizeUnit.factor,
+                  color: const Color(0xFF64BE00)),
+            ]),
+        RadialAxis(
+          showAxisLine: false,
+          showLabels: false,
+          showTicks: false,
+          startAngle: 180,
+          endAngle: 360,
+          maximum: 120,
+          radiusFactor: 0.85,
+          canScaleToFit: true,
+          pointers: <GaugePointer>[
+            MarkerPointer(
+                markerType: MarkerType.text,
+                text: 'Poor',
+                value: 20.5,
+                textStyle: GaugeTextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: isCardView ? 14 : 18,
+                    fontFamily: 'Times'),
+                offsetUnit: GaugeSizeUnit.factor,
+                markerOffset: -0.12),
+            MarkerPointer(
+                markerType: MarkerType.text,
+                text: 'Average',
+                value: 60.5,
+                textStyle: GaugeTextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: isCardView ? 14 : 18,
+                    fontFamily: 'Times'),
+                offsetUnit: GaugeSizeUnit.factor,
+                markerOffset: -0.12),
+            MarkerPointer(
+                markerType: MarkerType.text,
+                text: 'Good',
+                value: 100.5,
+                textStyle: GaugeTextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: isCardView ? 14 : 18,
+                    fontFamily: 'Times'),
+                offsetUnit: GaugeSizeUnit.factor,
+                markerOffset: -0.12)
+          ],
+        ),
+      ],
+    );
+  }
+
+  double calculateIrrigationValue(
+      double soilMoisture,
+      double humidity,
+      double temperature,
+      double rainfall,
+      int prediction
+      ) {
+    // You can customize this formula based on the factors and their importance
+    // This is just a basic example, adjust it based on your specific requirements
+    double irrigationValue =
+        prediction * 0.3 +          // Adjust the weights based on importance
+            (1.0 - soilMoisture) * 0.2 +
+            humidity * 0.2 +
+            (temperature > 30.0 ? 1.0 : 0.0) * 0.1 +
+            (rainfall > 10.0 ? 1.0 : 0.0) * 0.2;
+
+    // Ensure the irrigation value is within the valid range (0 to 100)
+    return irrigationValue.clamp(0.0, 100.0);
+  }
 }

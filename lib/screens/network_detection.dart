@@ -68,9 +68,11 @@ class _NetworkDetectionState extends State<NetworkDetection> {
   }
 
   Future<void> _initializeProvisioning() async {
-    Map<String, String>? wifiData = await EsptouchSmartconfig.wifiData();
-    if (wifiData != null) {
-      await _startProvisioning(wifiData);
+    if (isWifiConnected) {
+      Map<String, String>? wifiData = await EsptouchSmartconfig.wifiData();
+      if (wifiData != null) {
+        await _startProvisioning(wifiData);
+      }
     }
   }
 

@@ -4,7 +4,9 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:irrigation/utils/prefs.dart';
+import 'package:irrigation/utils/shared.dart';
 import 'package:irrigation/utils/stat_card.dart';
+import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 class AnalyticsPage extends StatefulWidget {
@@ -27,10 +29,24 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       'humidity': <SensorData>[],
       'soilMoisture': <SensorData>[],
     },
-    'current': 0.0,
-    'average': 0.0,
-    'highest': 0.0,
-    'lowest': 0.0,
+    'temperature': {
+      'current': 0.0,
+      'average': 0.0,
+      'highest': 0.0,
+      'lowest': 0.0,
+    },
+    'humidity': {
+      'current': 0.0,
+      'average': 0.0,
+      'highest': 0.0,
+      'lowest': 0.0,
+    },
+    'soilMoisture': {
+      'current': 0.0,
+      'average': 0.0,
+      'highest': 0.0,
+      'lowest': 0.0,
+    },
   };
 
   @override
@@ -126,10 +142,24 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         'humidity': <SensorData>[],
         'soilMoisture': <SensorData>[],
       },
-      'current': 0.0,
-      'average': 0.0,
-      'highest': 0.0,
-      'lowest': 0.0,
+      'temperature': {
+        'current': 0.0,
+        'average': 0.0,
+        'highest': 0.0,
+        'lowest': 0.0,
+      },
+      'humidity': {
+        'current': 0.0,
+        'average': 0.0,
+        'highest': 0.0,
+        'lowest': 0.0,
+      },
+      'soilMoisture': {
+        'current': 0.0,
+        'average': 0.0,
+        'highest': 0.0,
+        'lowest': 0.0,
+      },
     };
   }
 
@@ -138,10 +168,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     List<SensorData> historicalData = _data['historicalData'][type];
     historicalData.add(SensorData(dateTime, value));
 
-    _data['current'] = value;
-    _data['average'] = _calculateAverage(historicalData.map((e) => e.value).toList());
-    _data['highest'] = _calculateHighest(historicalData.map((e) => e.value).toList());
-    _data['lowest'] = _calculateLowest(historicalData.map((e) => e.value).toList());
+    _data[type]['current'] = value;
+    _data[type]['average'] = _calculateAverage(historicalData.map((e) => e.value).toList());
+    _data[type]['highest'] = _calculateHighest(historicalData.map((e) => e.value).toList());
+    _data[type]['lowest'] = _calculateLowest(historicalData.map((e) => e.value).toList());
 
     print(_data);
   }
@@ -166,6 +196,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final sharedValue = Provider.of<SharedValue>(context);
+
+    sharedValue.setTemperature(double.parse(_data['temperature']['current'].toString()));
+    sharedValue.setHumidity(double.parse(_data['humidity']['current'].toString()));
+    sharedValue.setSoilMoisture(double.parse(_data['soilMoisture']['current'].toString()));
+
     print(_data);
     return DefaultTabController(
       length: 3,
@@ -191,6 +227,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                       setState(() {
                         selectedUnit = value!;
                         AppPrefs().saveSelectedUnit(value);
+                        
                         listenDb(selectedUnit!);
                       });
                     },
@@ -204,16 +241,16 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         ),
         body: TabBarView(
           children: [
-            _buildChartTab('Temperature', _data['historicalData']['temperature'], Icons.thermostat),
-            _buildChartTab('Soil Moisture', _data['historicalData']['soilMoisture'], Icons.water_drop),
-            _buildChartTab('Humidity', _data['historicalData']['humidity'], Icons.cloud_rounded),
+            _buildChartTab('Temperature', _data['historicalData']['temperature'], 'temperature', Icons.thermostat),
+            _buildChartTab('Soil Moisture', _data['historicalData']['soilMoisture'], 'soilMoisture', Icons.water_drop),
+            _buildChartTab('Humidity', _data['historicalData']['humidity'], 'humidity', Icons.cloud_rounded),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildChartTab(String title, List<SensorData> data, icon) {
+  Widget _buildChartTab(String title, List<SensorData> data, type, icon) {
     var myData = data.where((element) => element.time.day == data.reduce((a, b) => a.time.day > b.time.day ? a : b).time.day).toList();
     myData.sort((a, b) => a.time.compareTo(b.time));
 
@@ -226,10 +263,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             shrinkWrap: true,
             crossAxisCount: 2,
             children: [
-              StatCard(title: 'Current', value: _data['current'].toStringAsFixed(2), icon: icon),
-              StatCard(title: 'Average', value: _data['average'].toStringAsFixed(2), icon: icon),
-              StatCard(title: 'Highest', value: _data['highest'].toStringAsFixed(2), icon: icon),
-              StatCard(title: 'Lowest', value: _data['lowest'].toStringAsFixed(2), icon: icon),
+              StatCard(title: 'Current', value: _data[type]['current'].toStringAsFixed(2), icon: icon),
+              StatCard(title: 'Average', value: _data[type]['average'].toStringAsFixed(2), icon: icon),
+              StatCard(title: 'Highest', value: _data[type]['highest'].toStringAsFixed(2), icon: icon),
+              StatCard(title: 'Lowest', value: _data[type]['lowest'].toStringAsFixed(2), icon: icon),
             ],
           ),
           const Gap(16.0),
@@ -250,9 +287,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 dataSource: myData,
                 xValueMapper: (SensorData sensorData, _) => sensorData.time,
                 yValueMapper: (SensorData sensorData, _) => sensorData.value,
-                dataLabelSettings: const DataLabelSettings(isVisible: true),
+                dataLabelSettings: const DataLabelSettings(isVisible: false),
                 enableTooltip: true,
-                markerSettings: const MarkerSettings(isVisible: true),
+                markerSettings: const MarkerSettings(isVisible: false),
               ),
             ],
             tooltipBehavior: TooltipBehavior(enable: true),

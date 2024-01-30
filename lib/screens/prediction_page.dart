@@ -6,6 +6,8 @@ import 'package:gap/gap.dart';
 import 'package:irrigation/screens/home_page.dart';
 import 'package:irrigation/utils/colors.dart';
 import 'package:irrigation/utils/prefs.dart';
+import 'package:irrigation/utils/shared.dart';
+import 'package:provider/provider.dart';
 import 'package:sklite/SVM/SVM.dart';
 import 'package:sklite/utils/io.dart';
 
@@ -25,14 +27,19 @@ class _PredictionPageState extends State<PredictionPage> {
   String? selectedUnit;
   int? prediction;
   SVC? svc;
+  bool showEmtpyState = false;
 
   @override
   void initState() {
     // checkSetup();
     super.initState();
 
+    initFirebase();
+    loadAllUnits();
+
     loadModel("assets/svm.json").then((x) {
       svc = SVC.fromMap(json.decode(x));
+      print('Model loaded');
     });
   }
 
@@ -40,9 +47,11 @@ class _PredictionPageState extends State<PredictionPage> {
   Future<void> initFirebase() async {
     _databaseReference = FirebaseDatabase.instance.ref("FirebaseIOT");
     // Set up a listener for changes in the sprinkler state
+    print('inti fb Model loaded');
   }
 
   Future<void> listenDb(String unit) async {
+    print('Model loaded listen');
     _databaseReference.child(unit).keepSynced(true);
     _databaseReference.child(unit).onValue.listen((DatabaseEvent event) {
       final dynamic snapshotValue = event.snapshot.value;
@@ -63,6 +72,7 @@ class _PredictionPageState extends State<PredictionPage> {
     setState(() {
       units = List.generate(devices.length, (index) => devices[index]['id']);
       selectedUnit = savedUnit ?? units[0];
+      fetchData(selectedUnit!);
       listenDb(selectedUnit!);
     });
   }
@@ -84,26 +94,35 @@ class _PredictionPageState extends State<PredictionPage> {
   }
 
   Future<void> fetchData(unit) async {
-    final startDay = await AppPrefs().getStartDay(unit);
-    final crop = await AppPrefs().getCrop(unit);
-
+    print('Model loaded fetch');
     if (firebaseData != null) {
+      print('Firebase data: $firebaseData');
+
       final List<double> features = getFeatures(
-        firebaseData!['temperature'].last['value'],
-        firebaseData!['humidity'].last['value'],
-        firebaseData!['soilMoisture'].last['value'],
-        DateTime.now().difference(startDay).inDays,
-        crop,
+        double.parse(firebaseData!['current']['temperature'].toString()),
+        double.parse(firebaseData!['current']['humidity'].toString()),
+        double.parse(firebaseData!['current']['soilMoisture'].toString()),
+        DateTime.now().difference(DateTime.fromMicrosecondsSinceEpoch(firebaseData!['plantationDate'])).inDays,
+        int.parse(firebaseData!['crop'].toString()),
       );
       setState(() {
+        showEmtpyState = false;
         prediction = svc!.predict(features);
-        print(prediction);
+        print('Prediction: $prediction');
+      });
+    } else {
+      setState(() {
+        showEmtpyState = true;
+        prediction = null;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final sharedValue = Provider.of<SharedValue>(context);
+    sharedValue.setPrediction(prediction ?? 0);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -119,8 +138,11 @@ class _PredictionPageState extends State<PredictionPage> {
                   items: snapshot.data,
                   onChanged: (value) {
                     setState(() {
+                      firebaseData = null;
                       selectedUnit = value!;
                       AppPrefs().saveSelectedUnit(value);
+
+                      fetchData(selectedUnit!);
                       listenDb(selectedUnit!);
                     });
                   },
@@ -131,36 +153,56 @@ class _PredictionPageState extends State<PredictionPage> {
             }
           }),
         ],
-        backgroundColor: AppColors.accentColor,
-        shape: const Border(),
       ),
-      body: SingleChildScrollView(
-        child: SafeArea(
+      body: SafeArea(
+        child: Expanded(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Gap(20),
+              Image.asset(
+                'assets/images/crop_monitoring.png',
+                width: double.infinity,
+              ),
+              Gap(50),
+
               if (prediction != null)
-                Text(
-                  'Prediction: ${prediction == 1 ? 'On' : 'Off'}',
-                  style: const TextStyle(
+                RichText(
+                  text: TextSpan(
+                    text: 'According to our model prediction, you ',
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w900,
+                      height: 1.2,
+                      color: AppColors.primaryColor,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: prediction == 1 ? 'should' : 'should not',
+                        style: TextStyle(
+                          color: prediction == 1 ? Colors.green : Colors.red,
+                        ),
+                      ),
+                      const TextSpan(
+                        text: ' irrigate your crops today.',
+                        style: TextStyle(
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              if (showEmtpyState)
+                const Text(
+                  'No data available.',
+                  style: TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w900,
                     height: 1.2,
                   ),
                   textAlign: TextAlign.center,
                 ),
-              const Gap(20),
-              if (prediction != null)
-                Text(
-                  'The sprinkler is predicted to be ${prediction == 1 ? 'on' : 'off'}',
-                  style: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w900,
-                    height: 1.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-            ]
+            ],
           ),
         ),
       ),
