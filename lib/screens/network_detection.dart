@@ -101,7 +101,7 @@ class _NetworkDetectionState extends State<NetworkDetection> {
 
     _espSubscription = _espStream!.listen((event) {
       setState(() {
-        _devices.add(event.bssid.replaceAll(':', ''));
+        _devices.add(event.bssid.replaceAll(':', '').toUpperCase());
       });
     });
   }
@@ -198,7 +198,7 @@ class _NetworkDetectionState extends State<NetworkDetection> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => NetworkSelection(
-                        devices: [deviceIdController.text],
+                        devices: [deviceIdController.text.toUpperCase()],
                         isAddDevice: widget.isAddDevice,
                       ),
                     ),
