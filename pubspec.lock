@@ -294,14 +294,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.9"
-  flutter_neumorphic_plus:
-    dependency: "direct main"
-    description:
-      name: flutter_neumorphic_plus
-      sha256: fc702c6414c6d9e1498f84ca124b59104e0dcbac59f92a47c5776e023d985e63
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.3.0"
   flutter_oss_licenses:
     dependency: "direct dev"
     description:

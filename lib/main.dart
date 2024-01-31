@@ -1,5 +1,5 @@
-import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 import 'package:irrigation/screens/get_started.dart';
 import 'package:irrigation/screens/home_page.dart';
 import 'package:irrigation/utils/shared.dart';
@@ -32,10 +32,10 @@ class RajeshIot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     AppTheme.init(context);
-    return NeumorphicApp(
+    return MaterialApp(
       title: 'Smart Irrigation',
       debugShowCheckedModeBanner: false,
-      materialTheme: AppTheme.materialTheme,
+      theme: AppTheme.materialTheme,
       home: const GetStarted()
     );
   }

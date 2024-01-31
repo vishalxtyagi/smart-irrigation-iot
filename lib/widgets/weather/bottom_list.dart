@@ -87,7 +87,7 @@ Widget forecastCard(Map<String, dynamic> data, int index) {
       ),
       Text(
         '$tempMin°C / $rain mm',
-        style: const TextStyle(color: Colors.white, fontSize: 20),
+        style: const TextStyle(color: Colors.white, fontSize: 15),
       ),
     ],
   );

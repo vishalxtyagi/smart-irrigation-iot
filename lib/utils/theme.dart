@@ -1,4 +1,4 @@
-import 'package:flutter_neumorphic_plus/flutter_neumorphic.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'colors.dart';
 
@@ -22,14 +22,6 @@ class AppTheme {
           displayColor: Colors.black,
           fontFamily: GoogleFonts.getFont('Urbanist').fontFamily,
         );
-  }
-
-  static NeumorphicThemeData get theme {
-    return const NeumorphicThemeData(
-      baseColor: AppColors.backgroundColor,
-      lightSource: LightSource.topLeft,
-      depth: 10,
-    );
   }
 
   static ThemeData get materialTheme {
