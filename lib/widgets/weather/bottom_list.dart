@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:irrigation/utils/weather.dart';
 
 class ButtomListView extends StatelessWidget {
-  final AsyncSnapshot<Map<String, dynamic>> snapshot;
+  final Map<String, dynamic> snapshot;
 
   const ButtomListView({
     super.key,
@@ -40,11 +40,11 @@ class ButtomListView extends StatelessWidget {
                     color: const Color(0xff00A1FF).withOpacity(0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: forecastCard(snapshot.data!, index),
+                  child: forecastCard(snapshot, index),
                 );
               },
               separatorBuilder: (context, index) => const SizedBox(width: 8),
-              itemCount: snapshot.data!["daily"]["weather_code"].length,
+              itemCount: snapshot["daily"]["weather_code"].length,
             ),
           )
         ],

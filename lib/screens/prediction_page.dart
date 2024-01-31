@@ -110,6 +110,9 @@ class _PredictionPageState extends State<PredictionPage> {
         prediction = svc!.predict(features);
         print('Prediction: $prediction');
       });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _updateSharedValue();
+      });
     } else {
       setState(() {
         showEmtpyState = true;
@@ -118,11 +121,13 @@ class _PredictionPageState extends State<PredictionPage> {
     }
   }
 
+  void _updateSharedValue() {
+    print('Updating shared value prediction');
+    Provider.of<SharedValue>(context, listen: false).setPrediction(1); //prediction ?? 0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final sharedValue = Provider.of<SharedValue>(context);
-    sharedValue.setPrediction(prediction ?? 0);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -155,55 +160,53 @@ class _PredictionPageState extends State<PredictionPage> {
         ],
       ),
       body: SafeArea(
-        child: Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/images/crop_monitoring.png',
-                width: double.infinity,
-              ),
-              Gap(50),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/images/crop_monitoring.png',
+              width: double.infinity,
+            ),
+            Gap(50),
 
-              if (prediction != null)
-                RichText(
-                  text: TextSpan(
-                    text: 'According to our model prediction, you ',
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.w900,
-                      height: 1.2,
-                      color: AppColors.primaryColor,
-                    ),
-                    children: [
-                      TextSpan(
-                        text: prediction == 1 ? 'should' : 'should not',
-                        style: TextStyle(
-                          color: prediction == 1 ? Colors.green : Colors.red,
-                        ),
-                      ),
-                      const TextSpan(
-                        text: ' irrigate your crops today.',
-                        style: TextStyle(
-                          color: AppColors.primaryColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              if (showEmtpyState)
-                const Text(
-                  'No data available.',
-                  style: TextStyle(
+            if (prediction != null)
+              RichText(
+                text: TextSpan(
+                  text: 'According to our model prediction, you ',
+                  style: const TextStyle(
                     fontSize: 30,
                     fontWeight: FontWeight.w900,
                     height: 1.2,
+                    color: AppColors.primaryColor,
                   ),
-                  textAlign: TextAlign.center,
+                  children: [
+                    TextSpan(
+                      text: prediction == 1 ? 'should' : 'should not',
+                      style: TextStyle(
+                        color: prediction == 1 ? Colors.green : Colors.red,
+                      ),
+                    ),
+                    const TextSpan(
+                      text: ' irrigate your crops today.',
+                      style: TextStyle(
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
+                  ],
                 ),
-            ],
-          ),
+                textAlign: TextAlign.center,
+              ),
+            if (showEmtpyState)
+              const Text(
+                'No data available.',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+          ],
         ),
       ),
     );

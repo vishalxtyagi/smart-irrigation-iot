@@ -106,7 +106,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.water_drop_rounded),
-              label: 'Sprinkler',
+              label: 'Motor',
               backgroundColor: _bottomNavBarColor,
             ),
             BottomNavigationBarItem(

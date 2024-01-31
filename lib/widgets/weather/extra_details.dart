@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class ExtraDetails extends StatelessWidget {
-  final AsyncSnapshot<Map<String, dynamic>> snapshot;
+  final Map<String, dynamic> snapshot;
 
   const ExtraDetails({
     super.key,
@@ -11,8 +11,8 @@ class ExtraDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var current = snapshot.data!["current"];
-    var current_units = snapshot.data!["current_units"];
+    var current = snapshot["current"];
+    var current_units = snapshot["current_units"];
 
     print('current: $current');
 

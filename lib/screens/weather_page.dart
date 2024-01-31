@@ -16,20 +16,50 @@ class WeatherPage extends StatefulWidget {
 }
 
 class _WeatherPageState extends State<WeatherPage> {
-  late Future<Map<String, dynamic>> weatherObj;
   late String _address;
+  Map<String, dynamic>? _weatherData;
+  late bool _isLoading;
+  late String _error;
 
   @override
   void initState() {
     super.initState();
+    _isLoading = true;
+    _error = '';
     AppPermission.requestLocationPermission();
-    weatherObj = WeatherApi().fetchWeatherForecast();
+    _fetchWeatherData();
+  }
+
+  Future<void> _fetchWeatherData({String? address}) async {
+    try {
+      final data = await WeatherApi().fetchWeatherForecast(address: address);
+      setState(() {
+        _weatherData = data;
+        _isLoading = false;
+        _error = '';
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _updateSharedValue();
+      });
+    } catch (error) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Error fetching data';
+      });
+    }
+  }
+
+  void _updateSharedValue() {
+    print('Updating shared value weather');
+
+    if (_weatherData != null) {
+      Provider.of<SharedValue>(context, listen: false).setRain(_weatherData!['current']['rain']);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final sharedValue = Provider.of<SharedValue>(context);
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -40,9 +70,7 @@ class _WeatherPageState extends State<WeatherPage> {
           children: [
             InkWell(
               onTap: () {
-                setState(() {
-                  weatherObj = WeatherApi().fetchWeatherForecast();
-                });
+                _fetchWeatherData();
               },
               child: const Icon(
                 Icons.refresh_rounded,
@@ -74,9 +102,7 @@ class _WeatherPageState extends State<WeatherPage> {
                 if (tappedName != null) {
                   setState(() {
                     _address = tappedName;
-                    weatherObj = WeatherApi().fetchWeatherForecast(
-                      address: _address,
-                    );
+                    _fetchWeatherData(address: _address);
                   });
                 }
               },
@@ -84,38 +110,27 @@ class _WeatherPageState extends State<WeatherPage> {
           ],
         ),
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: weatherObj,
-        builder: (context, snapshot) {
-          print(snapshot);
-
-          if (snapshot.hasData) {
-            print(snapshot.data);
-            sharedValue.setRain(snapshot.data!['current']['rain']);
-            return SingleChildScrollView(
-              child: Column(
-                children: [
-                  CurrentWeather(snapshot: snapshot),
-                  ButtomListView(snapshot: snapshot),
-                ],
-              ),
-            );
-          } else if (snapshot.hasError) {
-            return const Center(
-              child: Text(
-                'Error fetching data',
-                style: TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            );
-          } else {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-        },
+      body: _isLoading
+          ? const Center(
+        child: CircularProgressIndicator(),
+      )
+          : _error.isNotEmpty
+          ? Center(
+        child: Text(
+          _error,
+          style: const TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      )
+          : SingleChildScrollView(
+        child: Column(
+          children: [
+            CurrentWeather(snapshot: _weatherData!),
+            ButtomListView(snapshot: _weatherData!),
+          ],
+        ),
       ),
     );
   }

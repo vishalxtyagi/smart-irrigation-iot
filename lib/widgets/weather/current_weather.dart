@@ -5,7 +5,7 @@ import 'package:irrigation/utils/weather.dart';
 import 'package:irrigation/widgets/weather/extra_details.dart';
 
 class CurrentWeather extends StatelessWidget {
-  final AsyncSnapshot<Map<String, dynamic>> snapshot;
+  final Map<String, dynamic> snapshot;
 
   const CurrentWeather({
     Key? key,
@@ -14,7 +14,7 @@ class CurrentWeather extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var data = snapshot.data!;
+    var data = snapshot;
     print(data);
     var current = data["current"];
     print(current);

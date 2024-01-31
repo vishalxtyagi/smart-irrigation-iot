@@ -126,6 +126,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           });
           print('hdshsf ${historyData.values.toList()}');
         }
+        setState(() {});
       }
     } catch (error) {
       print('Error fetching data: $error');
@@ -196,12 +197,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final sharedValue = Provider.of<SharedValue>(context);
-
-    sharedValue.setTemperature(double.parse(_data['temperature']['current'].toString()));
-    sharedValue.setHumidity(double.parse(_data['humidity']['current'].toString()));
-    sharedValue.setSoilMoisture(double.parse(_data['soilMoisture']['current'].toString()));
-
     print(_data);
     return DefaultTabController(
       length: 3,
@@ -251,12 +246,27 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 
   Widget _buildChartTab(String title, List<SensorData> data, type, icon) {
+    if (data.isEmpty) {
+      // Handle the case when data is not available yet
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const Gap(20.0),
+            Text('Fetching $title data...'),
+          ],
+        )
+      );
+    }
+
     var myData = data.where((element) => element.time.day == data.reduce((a, b) => a.time.day > b.time.day ? a : b).time.day).toList();
     myData.sort((a, b) => a.time.compareTo(b.time));
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(12.0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GridView.count(
             primary: true,
@@ -269,7 +279,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               StatCard(title: 'Lowest', value: _data[type]['lowest'].toStringAsFixed(2), icon: icon),
             ],
           ),
-          const Gap(16.0),
+          const Gap(40.0),
+          Text('Today\'s $title', style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold)),
           SfCartesianChart(
             primaryXAxis: DateTimeAxis(
               dateFormat: DateFormat.Hms(),
