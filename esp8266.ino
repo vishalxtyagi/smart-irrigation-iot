@@ -12,6 +12,7 @@
 // PINS
 #define DHT_PIN D2
 #define LED_PIN D5
+#define PUMP_RELAY_PIN D6
 #define SOIL_MOISTURE_PIN A0
 
 // Configurability
@@ -23,6 +24,10 @@
 #define WIFI_CONNECT_DELAY 500
 #define MONITORING_DELAY 15000
 
+// Offline automation thresholds (used when cloud is unreachable)
+#define MOISTURE_LOW_THRESHOLD 30.0
+#define MOISTURE_HIGH_THRESHOLD 70.0
+
 // Root Branch
 #define ROOT_BRANCH "/FirebaseIOT/"
 
@@ -31,10 +36,13 @@
 #define CONTROL_PATH "/control"
 #define CURRENT_PATH "/current"
 #define HISTORY_PATH "/history"
+#define AUTO_PATH "/automation"
+#define PUMP_PATH "/sprinklers"
 
 
 DHT dht(DHT_PIN, DHT_TYPE);
 FirebaseData fbdo;
+FirebaseData fbdoCtrl;
 FirebaseJson fbjo;
 FirebaseAuth auth;
 FirebaseConfig config;
@@ -43,6 +51,7 @@ String deviceId;
 String dbPath;
 String lastStatus = "OFF";
 bool isConnected = false;
+bool automationEnabled = false;
 unsigned long sendDataPrevMillis = 0;
 
 WiFiUDP ntpUDP;
@@ -53,7 +62,7 @@ void setup()
 {
   Serial.begin(115200);
   delay(1500);
-  Serial.println("Rajesh Agricultural Iot Network\nInitializing...");
+  Serial.println("Smart Irrigation System\nInitializing...");
 
   deviceId = WiFi.macAddress();
   deviceId.replace(":", "");
@@ -62,8 +71,13 @@ void setup()
   Serial.printf("Device ID: %s\n", deviceId.c_str());
 
   pinMode(LED_PIN, OUTPUT);
+  pinMode(PUMP_RELAY_PIN, OUTPUT);
   pinMode(SOIL_MOISTURE_PIN, INPUT);
   dht.begin();
+
+  // Ensure pump is OFF at startup
+  digitalWrite(PUMP_RELAY_PIN, LOW);
+  digitalWrite(LED_PIN, LOW);
 
   isConnected = wifiConnect() || smartConfig();
 
@@ -79,6 +93,7 @@ void loop()
   handleWiFiStatus();
   if (isConnected && Firebase.ready())
   {
+    readAutomationFlag();
     if (handleControl() && shouldSendData())
     {
       sendDataPrevMillis = millis();
@@ -86,37 +101,97 @@ void loop()
       heartBeat();
     }
   }
+  else if (!isConnected)
+  {
+    // Offline fallback: use local threshold-based automation
+    if (shouldSendData())
+    {
+      sendDataPrevMillis = millis();
+      offlineFallbackControl();
+    }
+  }
   isConnected = (WiFi.status() == WL_CONNECTED);
+}
+
+
+// Read the automation enable flag from Firebase
+void readAutomationFlag()
+{
+  if (Firebase.getBool(fbdoCtrl, dbPath + AUTO_PATH))
+  {
+    automationEnabled = fbdoCtrl.boolData();
+  }
+}
+
+
+// Offline fallback: control pump by raw moisture reading only
+void offlineFallbackControl()
+{
+  float soilMoisture;
+  if (!readSoilMoisture(soilMoisture))
+    return;
+
+  Serial.printf("[OFFLINE] Soil Moisture: %.2f%%\n", soilMoisture);
+
+  if (soilMoisture < MOISTURE_LOW_THRESHOLD)
+  {
+    activatePump("ON");
+    Serial.println("[OFFLINE] Pump turned ON (low moisture fallback)");
+  }
+  else if (soilMoisture > MOISTURE_HIGH_THRESHOLD)
+  {
+    activatePump("OFF");
+    Serial.println("[OFFLINE] Pump turned OFF (sufficient moisture)");
+  }
+}
+
+
+// Activate or deactivate the pump relay and status LED
+void activatePump(String state)
+{
+  bool pumpOn = (state == "ON");
+  digitalWrite(PUMP_RELAY_PIN, pumpOn ? HIGH : LOW);
+  digitalWrite(LED_PIN, pumpOn ? HIGH : LOW);
+  printControlStatus(state);
 }
 
 
 bool handleControl()
 {
-  if (Firebase.getString(fbdo, dbPath + CONTROL_PATH))
+  if (Firebase.getString(fbdo, dbPath + PUMP_PATH))
   {
     String controlValue = fbdo.stringData();
 
-    // Check the control value and take action
     if (controlValue == "ON")
     {
-      // Turn on your device
-      digitalWrite(LED_PIN, HIGH);
-      printControlStatus("ON");
+      activatePump("ON");
       return true;
     }
     else if (controlValue == "OFF")
     {
-      // Turn off your device
-      digitalWrite(LED_PIN, LOW);
-      printControlStatus("OFF");
+      activatePump("OFF");
     }
     else if (controlValue == "BLOCKED")
     {
-      // Blink the LED to indicate a blocked state
       blinkLED(3);
       printControlStatus("BLOCKED");
     }
     return false;
+  }
+
+  // Also check legacy control path for backwards compatibility
+  if (Firebase.getString(fbdo, dbPath + CONTROL_PATH))
+  {
+    String controlValue = fbdo.stringData();
+    if (controlValue == "ON")
+    {
+      activatePump("ON");
+      return true;
+    }
+    else if (controlValue == "OFF")
+    {
+      activatePump("OFF");
+    }
   }
 
   return false;
@@ -157,15 +232,14 @@ void setupFirebase()
   config.api_key = API_KEY;
   config.database_url = DATABASE_URL;
 
-  String email = deviceId + "-device@rajeshiot.net";
-  String password = deviceId; // generatePassword(8);
-  Serial.printf("User ID: %s\nEmail: %s\nPassword: %s\n\n", auth.token.uid.c_str(), email.c_str(), password.c_str());
+  String email = deviceId + "-device@smartirrigation.net";
+  String password = deviceId;
+  Serial.printf("Email: %s\n\n", email.c_str());
 
   auth.user.email = email;
   auth.user.password = password;
 
   config.token_status_callback = tokenStatusCallback;
-  Serial.println();
 
   Firebase.begin(&config, &auth);
   Firebase.reconnectNetwork(true);
@@ -181,7 +255,7 @@ bool wifiConnect()
     Serial.print(".");
     delay(WIFI_CONNECT_DELAY);
   }
-+
+
   if (WiFi.status() == WL_CONNECTED)
   {
     Serial.println("\nWiFi Connected!");
@@ -224,10 +298,9 @@ bool smartConfig()
 
 void printWifiStatus()
 {
-  Serial.printf("\nSSID: %s\nPassword: %s\nIP Address: %s\n",
+  Serial.printf("\nSSID: %s\nIP Address: %s\n",
                 WiFi.SSID().c_str(),
-                WiFi.psk().c_str(),
-                WiFi.localIP().toString());
+                WiFi.localIP().toString().c_str());
 }
 
 
@@ -342,5 +415,5 @@ void printControlStatus(String status) {
       Serial.println("STATUS: Device control - Turned " + status);
     }
     lastStatus = status;
-  } 
+  }
 }

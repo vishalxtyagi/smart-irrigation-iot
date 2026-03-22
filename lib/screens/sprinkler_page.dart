@@ -1,10 +1,9 @@
-import 'dart:convert';
-
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:irrigation/utils/colors.dart';
+import 'package:gap/gap.dart';
+import 'package:irrigation/models/irrigation_recommendation.dart';
+import 'package:irrigation/services/automation_service.dart';
 import 'package:irrigation/utils/colors.dart';
 import 'package:irrigation/utils/prefs.dart';
 import 'package:irrigation/utils/shared.dart';
@@ -12,8 +11,6 @@ import 'package:irrigation/utils/size_config.dart';
 import 'package:irrigation/utils/styles.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
-
-import 'package:gap/gap.dart';
 
 class SprinklerPage extends StatefulWidget {
   final Function(bool) updateBottomNavBarColor;
@@ -38,21 +35,15 @@ class _SprinklerPageState extends State<SprinklerPage> {
   @override
   void initState() {
     super.initState();
-    initFirebase();
+    _databaseReference = FirebaseDatabase.instance.ref('FirebaseIOT');
     loadAllUnits();
   }
 
-  Future<void> initFirebase() async {
-    await Firebase.initializeApp();
-    _databaseReference = FirebaseDatabase.instance.ref("FirebaseIOT");
-    // Set up a listener for changes in the sprinkler state
-  }
-
   Future<void> listenDb(String unit) async {
-    print('Sprinkler state: $unit');
+    debugPrint('Listening sprinkler for: $unit');
     _databaseReference.child(unit).child('sprinklers').onValue.listen((event) {
       final data = event.snapshot.value;
-      print('Sprinkler state: $data');
+      debugPrint('Sprinkler state: $data');
       setState(() {
         sprinklerState = (data == 'ON');
         isBlocked = (data == 'BLOCKED');
@@ -62,17 +53,16 @@ class _SprinklerPageState extends State<SprinklerPage> {
   }
 
   Future<void> loadAllUnits() async {
-    String? savedUnit = await AppPrefs().getSelectedUnit();
+    final String? savedUnit = await AppPrefs().getSelectedUnit();
     final devices = await AppPrefs().getDevices();
     setState(() {
       units = List.generate(devices.length, (index) => devices[index]['id']);
-      selectedUnit = savedUnit ?? units[0];
-      listenDb(selectedUnit!);
+      selectedUnit = savedUnit ?? (units.isNotEmpty ? units[0] : null);
+      if (selectedUnit != null) listenDb(selectedUnit!);
     });
   }
 
   Future<List<DropdownMenuItem<String>>> _buildDropdownItems() async {
-    // show units as Unit 1, Unit 2, etc.
     return List.generate(units.length, (index) {
       return DropdownMenuItem<String>(
         value: units[index],
@@ -82,8 +72,16 @@ class _SprinklerPageState extends State<SprinklerPage> {
   }
 
   void toggleSprinklerState(String unit) {
-    // Toggle the sprinkler state in the database
-    _databaseReference.child(unit).child('sprinklers').set(sprinklerState ? 'OFF' : 'ON');
+    _databaseReference.child(unit).child('sprinklers').set(
+          sprinklerState ? 'OFF' : 'ON',
+        );
+  }
+
+  Future<void> _runAutomation(SharedValue sv) async {
+    if (selectedUnit == null) return;
+    final svc = AutomationService(sv);
+    final result = await svc.evaluate(zoneId: selectedUnit!);
+    sv.setRecommendation(result);
   }
 
   @override
@@ -94,43 +92,43 @@ class _SprinklerPageState extends State<SprinklerPage> {
     return Scaffold(
       backgroundColor: sprinklerState ? Colors.blue[400] : Colors.white,
       appBar: AppBar(
-          backgroundColor: sprinklerState ? Colors.blue[400] : Colors.white,
-          title: Text(
-            'Smart Irrigation',
-            style: TextStyle(
-              color: sprinklerState ? Colors.white : Colors.black,
-            ),
+        backgroundColor: sprinklerState ? Colors.blue[400] : Colors.white,
+        title: Text(
+          'Smart Irrigation',
+          style: TextStyle(
+            color: sprinklerState ? Colors.white : Colors.black,
           ),
-          actions: [
-            FutureBuilder(future: _buildDropdownItems(), builder: (context, snapshot) {
-              if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-                print(snapshot.data);
-                return DropdownButtonHideUnderline(
-                  child: DropdownButton(
-                    value: selectedUnit,
-                    items: snapshot.data,
-                    onChanged: (value) {
-                      setState(() {
-                        selectedUnit = value!;
-                        AppPrefs().saveSelectedUnit(value);
-                        
-                        listenDb(selectedUnit!);
-                      });
-                    },
-                  ),
-                );
-              } else {
-                return const SizedBox.shrink();
-              }
-            }),
-          ],
+        ),
+        actions: [
+          FutureBuilder(
+              future: _buildDropdownItems(),
+              builder: (context, snapshot) {
+                if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                  return DropdownButtonHideUnderline(
+                    child: DropdownButton(
+                      value: selectedUnit,
+                      items: snapshot.data,
+                      onChanged: (value) {
+                        setState(() {
+                          selectedUnit = value!;
+                          AppPrefs().saveSelectedUnit(value);
+                          listenDb(selectedUnit!);
+                        });
+                      },
+                    ),
+                  );
+                } else {
+                  return const SizedBox.shrink();
+                }
+              }),
+        ],
       ),
       body: SafeArea(
         minimum: const EdgeInsets.all(20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            Gap(20),
+            const Gap(20),
             RichText(
               text: TextSpan(
                 text: 'Motor: ',
@@ -150,59 +148,144 @@ class _SprinklerPageState extends State<SprinklerPage> {
                 ],
               ),
             ),
+            // Automation toggle row
+            _buildAutomationRow(sharedValue),
             Expanded(
               child: Center(
-                child: sprinklerState ? Container(
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.blue,// Change to your desired background color
-                  ),
-                  padding: const EdgeInsets.all(100),
-                  child: IconButton(
-                    icon: SvgPicture.asset(
-                      "assets/images/logo_white.svg",
-                      semanticsLabel: 'Logo',
-                      height: 100,
-                    ),
-                    onPressed: () async {
-                    },
-                  ),
-                ) : _buildGauge(
-                    sharedValue.rain,
-                    sharedValue.prediction
-                ),
+                child: sprinklerState
+                    ? Container(
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.blue,
+                        ),
+                        padding: const EdgeInsets.all(100),
+                        child: IconButton(
+                          icon: SvgPicture.asset(
+                            'assets/images/logo_white.svg',
+                            semanticsLabel: 'Logo',
+                            height: 100,
+                          ),
+                          onPressed: () {},
+                        ),
+                      )
+                    : _buildGauge(
+                        sharedValue.rain,
+                        sharedValue.prediction,
+                      ),
               ),
             ),
+            // Recommendation reason
+            if (sharedValue.recommendation != null && !sprinklerState)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  sharedValue.recommendation!.reason,
+                  style: TextStyle(
+                    color: sprinklerState ? Colors.white : Colors.grey[700],
+                    fontSize: 13,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            const Gap(8),
             TextButton(
               onPressed: () {
-                if (isBlocked) {
-                  return;
-                }
-
+                if (isBlocked) return;
                 toggleSprinklerState(selectedUnit!);
               },
               style: Theme.of(context).textButtonTheme.style!.copyWith(
-                backgroundColor: MaterialStateProperty.all<Color>(
-                  sprinklerState ? Colors.white : AppColors.primaryColor,
-                ),
-              ),
-              child: Text(sprinklerState ? 'Turn off motor' : 'Turn on motor',
+                    backgroundColor: MaterialStateProperty.all<Color>(
+                      sprinklerState
+                          ? Colors.white
+                          : AppColors.primaryColor,
+                    ),
+                  ),
+              child: Text(
+                sprinklerState ? 'Turn off motor' : 'Turn on motor',
                 style: TextStyle(
                   color: sprinklerState ? Colors.black : Colors.white,
                 ),
               ),
             ),
+            if (isBlocked)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'This device is blocked. Contact your administrator.',
+                  style: TextStyle(color: Colors.red, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ),
           ],
-        )
+        ),
       ),
     );
   }
 
-  Widget _buildGauge(rainfall, prediction) {
-    final result = calculateIrrigationValue(
-        rainfall,
-        prediction
+  Widget _buildAutomationRow(SharedValue sv) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: sv.automationEnabled
+            ? Colors.blue[50]
+            : Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+            color: sv.automationEnabled
+                ? Colors.blue[200]!
+                : Colors.grey[300]!),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.autorenew_rounded,
+            color: sv.automationEnabled ? Colors.blue : Colors.grey,
+          ),
+          const Gap(8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Automation',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: sv.automationEnabled
+                        ? Colors.blue[800]
+                        : Colors.grey[700],
+                  ),
+                ),
+                Text(
+                  sv.automationEnabled
+                      ? 'AI controls the pump automatically'
+                      : 'Manual control active',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: sv.automationEnabled
+                          ? Colors.blue[600]
+                          : Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: sv.automationEnabled,
+            onChanged: (val) {
+              sv.setAutomationEnabled(val);
+              if (val && selectedUnit != null) {
+                _runAutomation(sv);
+              }
+            },
+            activeColor: AppColors.primaryColor,
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _buildGauge(double rainfall, int prediction) {
+    final result = calculateIrrigationValue(rainfall, prediction);
 
     return Column(
       children: [
@@ -314,7 +397,9 @@ class _SprinklerPageState extends State<SprinklerPage> {
         ),
         const SizedBox(height: 10),
         Text(
-          'Based on rainfall: $rainfall (mm)\nAI Model prediction: $prediction\n\nYour field is in the ${result > 60 ? 'good' : result > 20 ? 'average' : 'poor'} condition',
+          'Based on rainfall: ${rainfall.toStringAsFixed(1)} mm\n'
+          'AI Model prediction: $prediction\n\n'
+          'Your field is in the ${result > 60 ? 'good' : result > 20 ? 'average' : 'poor'} condition',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -326,15 +411,10 @@ class _SprinklerPageState extends State<SprinklerPage> {
     );
   }
 
-  double calculateIrrigationValue(
-      double rainfall,
-      int prediction
-      ) {
-
-    final threshold = 50.0;
-    double irrigationValue = 120 * (1 - prediction) + (rainfall / threshold) * prediction * 100;
-    print('irrigationValue: $irrigationValue');
-    // Ensure the irrigation value is within the valid range (0 to 100)
+  double calculateIrrigationValue(double rainfall, int prediction) {
+    const threshold = 50.0;
+    final irrigationValue =
+        120 * (1 - prediction) + (rainfall / threshold) * prediction * 100;
     return irrigationValue.clamp(10.0, 110.0);
   }
 }
