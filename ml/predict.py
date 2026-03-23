@@ -172,9 +172,11 @@ class IrrigationPredictor:
                 soil_moisture, temperature, humidity, rainfall_forecast_mm
             )
 
-        features = np.array(
+        import pandas as pd
+
+        features = pd.DataFrame(
             [[soil_moisture, temperature, humidity, rainfall_forecast_mm, day_of_year, hour_of_day]],
-            dtype=np.float32,
+            columns=FEATURE_COLUMNS,
         )
         features_scaled = self._scaler.transform(features)
 

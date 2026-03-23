@@ -171,8 +171,7 @@ class _SprinklerPageState extends State<SprinklerPage> {
                     : _buildGauge(
                         sharedValue.rain,
                         sharedValue.prediction,
-                      ),
-              ),
+                      ),              ),
             ),
             // Recommendation reason
             if (sharedValue.recommendation != null && !sprinklerState)
@@ -285,7 +284,7 @@ class _SprinklerPageState extends State<SprinklerPage> {
   }
 
   Widget _buildGauge(double rainfall, int prediction) {
-    final result = calculateIrrigationValue(rainfall, prediction);
+    final result = _calculateGaugeValue(rainfall, prediction);
 
     return Column(
       children: [
@@ -411,10 +410,10 @@ class _SprinklerPageState extends State<SprinklerPage> {
     );
   }
 
-  double calculateIrrigationValue(double rainfall, int prediction) {
+  double _calculateGaugeValue(double rainfall, int prediction) {
     const threshold = 50.0;
-    final irrigationValue =
+    final gaugeValue =
         120 * (1 - prediction) + (rainfall / threshold) * prediction * 100;
-    return irrigationValue.clamp(10.0, 110.0);
+    return gaugeValue.clamp(10.0, 110.0);
   }
 }

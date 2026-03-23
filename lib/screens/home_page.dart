@@ -5,7 +5,6 @@ import 'package:irrigation/screens/settings_page.dart';
 import 'package:irrigation/screens/sprinkler_page.dart';
 import 'package:irrigation/screens/weather_page.dart';
 import 'package:irrigation/utils/colors.dart';
-import 'package:irrigation/utils/styles.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -29,10 +28,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
       _bottomNavBarColor = isSprinklerOn ? Colors.blue[400] : Colors.white;
       _bottomNavItemColor = isSprinklerOn ? Colors.white : Colors.black;
       _bottomNavSelectedColor = isSprinklerOn ? Colors.white : AppColors.primaryColor;
-
-      print('Bottom nav bar color: $_bottomNavBarColor');
-      print('Bottom nav item color: $_bottomNavItemColor');
-      print('Bottom nav selected color: $_bottomNavSelectedColor');
     });
   }
 
@@ -75,7 +70,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    print('Home page build: $_bottomNavBarColor');
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
@@ -88,7 +82,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
           ),
         ),
         child: BottomNavigationBar(
-          selectedLabelStyle: TextStyle(color: Styles.primaryColor),
+          selectedLabelStyle: TextStyle(color: AppColors.primaryColor),
           selectedItemColor: _bottomNavSelectedColor,
           unselectedItemColor: _bottomNavItemColor?.withOpacity(0.7),
           items: [
