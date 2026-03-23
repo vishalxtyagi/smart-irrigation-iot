@@ -41,3 +41,10 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ML pipeline – generated training data and model artefacts
+ml/data/
+ml/models/
+ml/serviceAccountKey.json
+__pycache__/
+*.pyc
